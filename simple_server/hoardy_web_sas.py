@@ -47,6 +47,33 @@ mypid = str(_os.getpid())
 bucket_re = _re.compile(r"[\w -]+")
 
 
+def resolve_bucket(bucket_param: str, default_bucket: str) -> str:
+    """Return `bucket_param` if it matches `bucket_re`, or `default_bucket` otherwise."""
+    if bucket_re.fullmatch(bucket_param):
+        return bucket_param
+    return default_bucket
+
+
+def test_resolve_bucket() -> None:
+    default = "default"
+
+    for good in ["foo", "my-profile", "my bucket", "a" * 64]:
+        assert resolve_bucket(good, default) == good
+
+    for bad in ["../foo", "foo/bar", "foo.bar", "foo\\bar", "", "/etc/passwd", "..", "."]:
+        assert resolve_bucket(bad, default) == default
+
+
+def test_bucket_cannot_escape_root() -> None:
+    root = _os.path.abspath("/tmp/hoardy-web-sas-root")
+    default = "default"
+
+    for bad in ["../foo", "../../foo", "../../../tmp", "foo/bar", "/tmp", "..", "."]:
+        bucket = resolve_bucket(bad, default)
+        directory = _os.path.abspath(_os.path.join(root, bucket))
+        assert directory == root or directory.startswith(root + _os.sep)
+
+
 class HTTPDumpServer(_threading.Thread):
     """HTTP server that accepts HTTP dumps as POST data, tries to compresses them
     with gzip, and saves them in a given directory.
@@ -108,7 +135,7 @@ class HTTPDumpServer(_threading.Thread):
                 except KeyError:
                     pass
                 else:
-                    bucket = "".join(bucket_re.findall(bucket_param))
+                    bucket = resolve_bucket(bucket_param, cargs.default_bucket)
             if len(bucket) == 0:
                 bucket = cargs.default_bucket
 

@@ -47,6 +47,9 @@ cbor = [
 hoardy-web-sas = "hoardy_web_sas:main"
 pwebarc-dumb-dump-server = "hoardy_web_sas:main"
 
+[tool.pytest.ini_options]
+testpaths = ["hoardy_web_sas.py"]
+
 [tool.mypy]
 python_version = "3.10"
 strict = true
