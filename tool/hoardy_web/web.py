@@ -1067,7 +1067,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                             )
                         # TODO: scrub_js goes here
 
-                        if opt_whitespace_re.fullmatch(adata):
+                        if optional_whitespace_re.fullmatch(adata):
                             adata = ""
                         elif yes_indent:
                             adata = (

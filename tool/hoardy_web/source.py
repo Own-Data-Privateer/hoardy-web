@@ -23,6 +23,7 @@ import io as _io
 import os as _os
 import typing as _t
 
+from kisstdlib.io.base import BytesIOReader
 from kisstdlib.failure import *
 from kisstdlib.fs import fsdecode as _fsdecode
 
@@ -63,14 +64,6 @@ class UnknownSource(DeferredSource):
 
     def get_bytes(self) -> bytes:
         raise NotImplementedError()
-
-
-class _BytesIOReader(_io.BytesIO):
-    def peek(self, size: int = 0) -> bytes:
-        return self.getvalue()[self.tell() : size]
-
-
-BytesIOReader = _t.cast(_t.Callable[[bytes], _io.BufferedReader], _BytesIOReader)
 
 
 @_dc.dataclass

@@ -32,7 +32,7 @@ from .wrr import *
 
 
 def plainify(obj: _t.Any) -> _t.Any:
-    if isinstance(obj, Timestamp):
+    if isinstance(obj, TimeStamp):
         return float(obj)
     if hasattr(obj, "__dataclass_fields__"):
         res = {}
@@ -52,6 +52,10 @@ def abridge_anystr[AnyStr: (
             return True, value[:hlength] + (b"\n...\n" if ln else b" ... ") + value[-hlength:]
         return True, value[:hlength] + ("\n...\n" if ln else " ... ") + value[-hlength:]
     return False, value
+
+
+time_format = ("{Y:04}-{m:02}-{d:02} {H:02}:{M:02}:{S:02}{f}", "@{s}{f}")
+time_format_s = ("{Y:04}-{m:02}-{d:02}_{H:02}:{M:02}:{S:02}{f}", "@{s}{f}")
 
 
 def wrr_pprint(
@@ -101,7 +105,7 @@ def wrr_pprint(
         fobj.write_str_ln("response none")
 
     fobj.write_str_ln(
-        f"clock {Timerange(req.started_at, reqres.finished_at).format_org(precision=3)}"
+        f"clock {TimeRange(req.started_at, reqres.finished_at).format3(*time_format, range_fmt='[{0}]--[{1}] => {2}', precision=3)}"
     )
 
     if len(reqres.extra) > 0:
@@ -285,7 +289,7 @@ class PyStreamEncoder(StreamEncoder):
 
     @staticmethod
     def encode_py(enc: PyReprEncoder, obj: _t.Any) -> None:
-        if isinstance(obj, Timestamp):
+        if isinstance(obj, TimeStamp):
             enc.lexeme(str(obj))
             enc.comment(obj.format())
         else:
@@ -385,7 +389,7 @@ class RawStreamEncoder(StreamEncoder):
 
     @staticmethod
     def encode_raw(enc: TIOEncoder, obj: _t.Any) -> None:
-        if isinstance(obj, Timestamp):
+        if isinstance(obj, TimeStamp):
             enc.write_str(str(obj))
         else:
             raise Failure("can't raw-encode a value of type `%s`", type(obj).__name__)

@@ -73,7 +73,7 @@ class RRCommon(metaclass=_abc.ABCMeta):
 
 @_dc.dataclass
 class Request(RRCommon):
-    started_at: Timestamp
+    started_at: TimeStamp
     method: str
     url: ParsedURL
     headers: Headers
@@ -96,7 +96,7 @@ class Request(RRCommon):
 
 @_dc.dataclass
 class Response(RRCommon):
-    started_at: Timestamp
+    started_at: TimeStamp
     code: int
     reason: str
     headers: Headers
@@ -118,7 +118,7 @@ class Response(RRCommon):
 
 @_dc.dataclass
 class WebSocketFrame:
-    sent_at: Timestamp
+    sent_at: TimeStamp
     from_client: bool
     opcode: int
     content: bytes
@@ -131,19 +131,19 @@ Reqres_fields = {
     "version": "WEBREQRES format version; int",
     "agent": "`+`-separated list of applications that produced this reqres; str",
     "protocol": 'protocol; e.g. `"HTTP/1.1"`, `"HTTP/2.0"`; str',
-    "request.started_at": "request start time in seconds since 1970-01-01 00:00; Timestamp",
+    "request.started_at": "request start time in seconds since 1970-01-01 00:00; TimeStamp",
     "request.method": 'request `HTTP` method; e.g. `"GET"`, `"POST"`, etc; str',
     "request.url": "request URL, including the `fragment`/hash part; str",
     "request.headers": "request headers; list[tuple[str, bytes]]",
     "request.complete": "is request body complete?; bool",
     "request.body": "request body; bytes",
-    "response.started_at": "response start time in seconds since 1970-01-01 00:00; Timestamp",
+    "response.started_at": "response start time in seconds since 1970-01-01 00:00; TimeStamp",
     "response.code": "`HTTP` response code; e.g. `200`, `404`, etc; int",
     "response.reason": '`HTTP` response reason; e.g. `"OK"`, `"Not Found"`, etc; usually empty for Chromium and filled for Firefox; str',
     "response.headers": "response headers; list[tuple[str, bytes]]",
     "response.complete": "is response body complete?; bool",
     "response.body": "response body; Firefox gives raw bytes, Chromium gives UTF-8 encoded strings; bytes | str",
-    "finished_at": "request completion time in seconds since 1970-01-01 00:00; Timestamp",
+    "finished_at": "request completion time in seconds since 1970-01-01 00:00; TimeStamp",
     "websocket": "a list of WebSocket frames",
 }
 
@@ -155,7 +155,7 @@ class Reqres:
     protocol: str
     request: Request
     response: _t.Optional[Response]
-    finished_at: Timestamp
+    finished_at: TimeStamp
     extra: dict[str, _t.Any]
     websocket: _t.Optional[list[WebSocketFrame]]
     _approx_size: int = 0
@@ -248,11 +248,11 @@ def _t_int(n: str, x: _t.Any) -> int:
     )
 
 
-def _t_timestamp(n: str, x: _t.Any) -> Timestamp:
-    return Timestamp(Decimal(_t_int(n, x)) / 1000)
+def _t_timestamp(n: str, x: _t.Any) -> TimeStamp:
+    return TimeStamp(Decimal(_t_int(n, x)) / 1000)
 
 
-def _f_timestamp(x: Timestamp) -> int:
+def _f_timestamp(x: TimeStamp) -> int:
     return int(x * 1000)
 
 
@@ -427,7 +427,7 @@ ReqresExpr_derived_attrs = {
     "raw_url": "aliast for `request.url`; str",
     "method": "aliast for `request.method`; str",
     #
-    "qtime": 'aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; Timestamp',
+    "qtime": 'aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; TimeStamp',
     "qtime_ms": "`qtime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "qtime_msq": "three least significant digits of `qtime_ms`; int",
     "qyear": "year number of `gmtime(qtime)` (UTC year number of `qtime`); int",
@@ -437,7 +437,7 @@ ReqresExpr_derived_attrs = {
     "qminute": "minute of `gmtime(qtime)`; int",
     "qsecond": "second of `gmtime(qtime)`; int",
     #
-    "stime": '`response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; seconds since UNIX epoch; Timestamp',
+    "stime": '`response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; seconds since UNIX epoch; TimeStamp',
     "stime_ms": "`stime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "stime_msq": "three least significant digits of `stime_ms`; int",
     "syear": "similar to `qyear`, but for `stime`; int",
@@ -447,7 +447,7 @@ ReqresExpr_derived_attrs = {
     "sminute": "similar to `qminute`, but for `stime`; int",
     "ssecond": "similar to `qsecond`, but for `stime`; int",
     #
-    "ftime": "aliast for `finished_at`; seconds since UNIX epoch; Timestamp",
+    "ftime": "aliast for `finished_at`; seconds since UNIX epoch; TimeStamp",
     "ftime_ms": "`ftime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "ftime_msq": "three least significant digits of `ftime_ms`; int",
     "fyear": "similar to `qyear`, but for `ftime`; int",
@@ -799,7 +799,7 @@ class ReqresExpr[Source: DeferredSource](DeferredSource, LinstEvaluator):
             return self.source.replaces(other.source)
         return self.source.replaces(other)
 
-    def _fill_time(self, prefix: str, ts: Timestamp) -> None:
+    def _fill_time(self, prefix: str, ts: TimeStamp) -> None:
         dt = _time.gmtime(int(ts))
         self.values[prefix + "year"] = dt.tm_year
         self.values[prefix + "month"] = dt.tm_mon
@@ -963,9 +963,9 @@ def rrexprs_wrr_some_loadf(
 def trivial_Reqres(
     url: ParsedURL,
     content_type: str = "text/html",
-    qtime: Timestamp = Timestamp(0),
-    stime: Timestamp = Timestamp(1000),
-    ftime: Timestamp = Timestamp(2000),
+    qtime: TimeStamp = TimeStamp(0),
+    stime: TimeStamp = TimeStamp(1000),
+    ftime: TimeStamp = TimeStamp(2000),
     sniff: bool = False,
     headers: Headers = [],
     data: bytes = b"",
@@ -993,7 +993,7 @@ def trivial_Reqres(
 def fallback_Reqres(
     url: ParsedURL,
     expected_mime: list[str],
-    time: Timestamp = Timestamp(0),
+    time: TimeStamp = TimeStamp(0),
     headers: Headers = [],
     data: bytes = b"",
 ) -> Reqres:

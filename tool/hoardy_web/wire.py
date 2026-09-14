@@ -636,7 +636,7 @@ token_body_re = _re.compile(rf"([^{token_ends}]+)")
 
 
 def parse_token(p: Parser) -> str:
-    return p.lexeme(token_body_re)
+    return _t.cast(str, p.lexeme_regex(token_body_re)[0])
 
 
 def parse_mime_type(p: Parser, ends: list[str] = []) -> str:
@@ -645,10 +645,10 @@ def parse_mime_type(p: Parser, ends: list[str] = []) -> str:
         maintype = parse_token(p)
         p.string("/")
         subtype = parse_token(p)
-        p.opt_whitespace()
+        p.skip_optional_whitespace()
         return maintype + "/" + subtype
     except ParsingFailure:
-        p.take_until_string_in(ends)
+        p.take_until_at_string_in(ends)
         # RFC says invalid content types are to be interpreted as `text/plain`
         return "text/plain"
 
@@ -658,7 +658,7 @@ attribute_body_re = _re.compile(rf"([^{attribute_ends}]+)")
 
 
 def parse_attribute(p: Parser) -> str:
-    return p.lexeme(attribute_body_re)
+    return _t.cast(str, p.lexeme_regex(attribute_body_re)[0])
 
 
 extended_attribute_ends = token_ends + "*'"
@@ -666,7 +666,7 @@ extended_attribute_body_re = _re.compile(rf"([^{extended_attribute_ends}]+)")
 
 
 def parse_extended_attribute(p: Parser) -> str:
-    return p.lexeme(extended_attribute_body_re)
+    return _t.cast(str, p.lexeme_regex(extended_attribute_body_re)[0])
 
 
 qcontent_body_re = _re.compile(r'([^"\\]*)')
@@ -683,7 +683,7 @@ def qcontent_escape(x: str) -> str:
 
 
 def parse_value(p: Parser, ends: list[str]) -> str:
-    ws = p.opt_whitespace()
+    ws = p.optional_whitespace()
     if p.at_eof() or p.at_string_in(ends):
         raise ParsingFailure("expected attribute value, got %s", repr(ws[0]))
     try:
@@ -694,15 +694,15 @@ def parse_value(p: Parser, ends: list[str]) -> str:
         res = []
         while not p.at_string('"'):
             if p.at_string("\\"):
-                p.skip(1)
+                p.advance(1)
                 res.append(p.take(1))
             else:
                 grp = p.regex(qcontent_body_re)
-                res.append(grp[0])
+                res.append(_t.cast(str, grp[0]))
         p.string('"')
-        p.opt_whitespace()
+        p.skip_optional_whitespace()
         token = "".join(res)
-    return ws[0] + token
+    return ws + token
 
 
 def parse_parameter(p: Parser, ends: list[str]) -> tuple[str, str]:
@@ -717,7 +717,7 @@ def parse_parameter(p: Parser, ends: list[str]) -> tuple[str, str]:
 
 
 def parse_invalid_parameter(p: Parser, ends: list[str]) -> tuple[str, str]:
-    key = p.take_until_string_in(ends)
+    key = p.take_until_at_string_in(ends)
     return key.rstrip(), ""
 
 
@@ -725,8 +725,8 @@ def parse_mime_parameters(p: Parser, ends: list[str] = []) -> Parameters:
     ends = [";"] + ends
     res = []
     while p.at_string(";"):
-        p.skip(1)
-        p.opt_whitespace()
+        p.advance(1)
+        p.skip_optional_whitespace()
         if p.at_eof() or p.at_string_in(ends):
             # empty parameter
             continue
@@ -767,9 +767,9 @@ def parse_data_url(value: str) -> tuple[str, Parameters, bytes]:
 
     data: str | bytes
     if base64:
-        data = _base64.b64decode(p.leftovers)
+        data = _base64.b64decode(p.leftovers())
     else:
-        data = _up.unquote_to_bytes(p.leftovers)
+        data = _up.unquote_to_bytes(p.leftovers())
     return mime_type, params, data
 
 
@@ -911,7 +911,7 @@ def parse_content_type_header(value: str) -> tuple[str, Parameters]:
     p = Parser(value)
     mime_type = parse_mime_type(p)
     params = parse_mime_parameters(p)
-    p.opt_whitespace()
+    p.skip_optional_whitespace()
     p.eof()
     return mime_type, params
 
@@ -976,28 +976,28 @@ link_url_re = _re.compile(url_re_str("<>"))
 def parse_link_value(p: Parser) -> tuple[str, Parameters]:
     """Parse single sub-value of HTTP `Link` header."""
     p.string("<")
-    p.opt_whitespace()
+    p.skip_optional_whitespace()
     grp = p.regex(link_url_re)
-    p.opt_whitespace()
+    p.skip_optional_whitespace()
     p.string(">")
-    p.opt_whitespace()
+    p.skip_optional_whitespace()
     params = parse_mime_parameters(p, [","])
-    return grp[0], params
+    return _t.cast(str, grp[0]), params
 
 
-ParsedLinkHeader = list[tuple[str, Parameters]]
+type ParsedLinkHeader = list[tuple[str, Parameters]]
 
 
 def parse_link_header(value: str) -> ParsedLinkHeader:
     """Parse HTTP `Link` header."""
     p = Parser(value)
     res = []
-    p.opt_whitespace()
+    p.skip_optional_whitespace()
     token = parse_link_value(p)
     res.append(token)
     while p.at_string(","):
-        p.skip(1)
-        p.opt_whitespace()
+        p.advance(1)
+        p.skip_optional_whitespace()
         if p.at_eof() or p.at_string(","):
             # empty link value
             continue
@@ -1011,7 +1011,7 @@ def unparse_link_header(links: ParsedLinkHeader) -> str:
 
 
 def test_parse_link_header() -> None:
-    def check(lhs: list[str], expected_values: _t.Any) -> None:
+    def check(lhs: list[str], expected_values: ParsedLinkHeader) -> None:
         for lh in lhs:
             values = parse_link_header(lh)
             for i, val in enumerate(expected_values):
@@ -1079,7 +1079,7 @@ def test_parse_link_header() -> None:
 
 
 def test_unparse_link_header() -> None:
-    def check(lh: _t.Any, expected_value: _t.Any) -> None:
+    def check(lh: ParsedLinkHeader, expected_value: str) -> None:
         value = unparse_link_header(lh)
         scheck(lh, "unparse", value, expected_value)
 
@@ -1104,14 +1104,14 @@ def test_unparse_link_header() -> None:
 def parse_refresh_header(value: str) -> tuple[int, str]:
     """Parse HTTP `Refresh` header."""
     p = Parser(value)
-    p.opt_whitespace()
+    p.skip_optional_whitespace()
     ngrp = p.regex(natural_re)
-    p.opt_whitespace()
+    p.skip_optional_whitespace()
     p.string(";")
-    p.opt_whitespace()
+    p.skip_optional_whitespace()
     p.string("url=")
     ugrp = p.regex(url_re)
-    return int(ngrp[0]), ugrp[0]
+    return int(_t.cast(str, ngrp[0])), _t.cast(str, ugrp[0])
 
 
 def unparse_refresh_header(secs: int, url: str) -> str:
@@ -1140,41 +1140,44 @@ def test_parse_refresh_header() -> None:
 
 ### HTML attribute parsing
 
-opt_srcset_condition = _re.compile(r"(?:\s+([0-9]+(?:\.[0-9]+)?[xw]))?")
-opt_srcset_sep = _re.compile(r"(\s*,)?")
+type ParsedSrcsetAttr = list[tuple[str, str | None]]
+
+srcset_condition_re = _re.compile(r"\s+([0-9]+(?:\.[0-9]+)?[xw])")
+srcset_sep_re = _re.compile(r"\s*,")
 
 
-def parse_srcset_attr(value: str) -> list[tuple[str, str]]:
+def parse_srcset_attr(value: str) -> ParsedSrcsetAttr:
     """Parse HTML5 srcset attribute"""
     res = []
     p = Parser(value)
-    p.opt_whitespace()
+    p.skip_optional_whitespace()
     while not p.at_eof():
-        grp = p.regex(url_re)
-        if grp[1].endswith(","):
-            url = grp[1][:-1]
-            p.unread(",")
-        else:
-            url = grp[1]
-        grp = p.opt_regex(opt_srcset_condition)
-        cond = grp[0]
-        p.opt_whitespace()
-        p.opt_regex(opt_srcset_sep)
-        p.opt_whitespace()
-        if url != "":
-            res.append((url, cond))
-        # else: ignore it
+        grp1 = p.regex(url_re)
+        url = _t.cast(str, grp1[1])
+        if url.endswith(","):
+            p.advance(-1)
+            url = url[:-1]
+
+        grp2 = p.optional_regex(srcset_condition_re)
+        p.skip_optional_regex(srcset_sep_re)
+        p.skip_optional_whitespace()
+
+        if len(url) == 0:
+            # ignore it
+            continue
+
+        res.append((url, None if grp2 is None else _t.cast(str, grp2[0])))
     p.eof()
     return res
 
 
-def unparse_srcset_attr(value: list[tuple[str, str]]) -> str:
+def unparse_srcset_attr(value: ParsedSrcsetAttr) -> str:
     """Unparse HTML5 srcset attribute"""
-    return ", ".join([(f"{url} {cond}" if cond is not None else url) for url, cond in value])
+    return ", ".join([(url if cond is None else f"{url} {cond}") for url, cond in value])
 
 
 def test_parse_srcset_attr() -> None:
-    def check(attr: str, expected_values: _t.Any) -> None:
+    def check(attr: str, expected_values: ParsedSrcsetAttr) -> None:
         values = parse_srcset_attr(attr)
         for i, val in enumerate(expected_values):
             url, cond = values[i]

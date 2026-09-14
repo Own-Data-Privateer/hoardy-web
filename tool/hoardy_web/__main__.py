@@ -17,7 +17,6 @@
 
 """`main()`."""
 
-import collections as _c
 import dataclasses as _dc
 import errno as _errno
 import hashlib as _hashlib
@@ -41,7 +40,6 @@ from kisstdlib import *
 from kisstdlib import argparse_ext as argparse
 from kisstdlib.fs import *
 from kisstdlib.io import *
-from kisstdlib.sorted import SortedList, SortedIndex, nearer_to_than
 
 from .filter import *
 from .wrr import *
@@ -93,16 +91,16 @@ def compile_filters(cargs: _t.Any, attr_prefix: str = "") -> FilterType[ReqresEx
     filters: list[FilterType[ReqresExpr[_t.Any]]] = []
 
     def add_yn_timestamp_filter(
-        name: str, pred: _t.Callable[[str, Timestamp, ReqresExpr[_t.Any]], bool]
+        name: str, pred: _t.Callable[[str, TimeStamp, ReqresExpr[_t.Any]], bool]
     ) -> None:
         add_yn_filter(filters, get_attr, get_optname, name, mk_simple_filter, timestamp, lambda c, v: matches_all(pred, c, v))  # fmt: skip
 
-    def is_before(_k: _t.Any, stime: Timestamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
-        rrstime: Timestamp = rrexpr.stime
+    def is_before(_k: _t.Any, stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
+        rrstime: TimeStamp = rrexpr.stime
         return rrstime < stime
 
-    def is_after(_k: _t.Any, stime: Timestamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
-        rrstime: Timestamp = rrexpr.stime
+    def is_after(_k: _t.Any, stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
+        rrstime: TimeStamp = rrexpr.stime
         return stime < rrstime
 
     add_yn_timestamp_filter("before", is_before)
@@ -395,7 +393,7 @@ def mk_rrexprs_load[AnyStr: (
 
 
 def get_bytes(value: _t.Any) -> bytes:
-    if value is None or isinstance(value, (bool, int, float, Timestamp)):
+    if value is None or isinstance(value, (bool, int, float, TimeStamp)):
         value = str(value)
 
     if isinstance(value, str):
@@ -1497,7 +1495,7 @@ class DeferredOperation[Source: DeferredSource, AnyStr: (str, bytes)]:
         self.updated = True
         return True
 
-    def run(self, sync: DeferredSync[AnyStr] | bool = True) -> None:
+    def run(self, sync: Deferred[AnyStr] | bool = True) -> None:
         """Write the `source` to `destination`."""
         raise NotImplementedError()
 
@@ -1516,7 +1514,7 @@ class DeferredFileWrite[Source: DeferredSource, AnyStr: (str, bytes)](
     def approx_size(self) -> int:
         return super().approx_size() + len(self.destination)
 
-    def run(self, sync: DeferredSync[AnyStr] | bool = True) -> None:
+    def run(self, sync: Deferred[AnyStr] | bool = True) -> None:
         data = self.source.get_bytes()
         if self.updated and file_data_equals(self.destination, data):
             # nothing to do
@@ -1547,23 +1545,21 @@ def make_deferred_emit[Source: DeferredSource, AnyStr: (
 
     # ReqresExpr cache indexed by destination path, this exists mainly
     # to minimize the number of calls to `stat`.
-    rrexpr_cache: _c.OrderedDict[AnyStr, ReqresExpr[FileSource] | ReqresExpr[Source]] = (
-        _c.OrderedDict()
-    )
+    rrexpr_cache: OrderedDict[AnyStr, ReqresExpr[FileSource] | ReqresExpr[Source]] = OrderedDict()
 
     # Deferred IO operations (aka "intents") that are yet to be executed,
     # indexed by filesystem paths. This is used both as a queue and as an
     # LRU-cache so that, e.g. repeated updates to the same output file would be
     # computed in memory.
-    deferred: _c.OrderedDict[
+    deferred: OrderedDict[
         AnyStr,
         DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr],
-    ] = _c.OrderedDict()
+    ] = OrderedDict()
 
     # Deferred file system updates. This collects references to everything
     # that should be fsynced to disk before proceeding to make flush_updates
     # below both atomic and efficient.
-    sync: DeferredSync[AnyStr] = DeferredSync(True)
+    sync: Deferred[AnyStr] = Deferred(True)
 
     max_memory_mib = cargs.max_memory * 1024 * 1024
 
@@ -1912,7 +1908,7 @@ def make_organize_emit[Source: DeferredSource, AnyStr: (
             self.updated = True
             return True
 
-        def run(self, sync: DeferredSync[AnyStr2] | bool = True) -> None:
+        def run(self, sync: Deferred[AnyStr2] | bool = True) -> None:
             rrexpr = self.source
             source = rrexpr.source
             if isinstance(source, FileSource) and source.path == self.destination:
@@ -2042,7 +2038,8 @@ def path_to_url(x: str) -> str:
 definitive_response_codes = frozenset([200, 204, 300, 404, 410])
 redirect_response_codes = frozenset([301, 302, 303, 307, 308])
 
-IndexedReqres = tuple[Timestamp, ReqresExpr[_t.Any]]
+IndexedReqres = tuple[TimeStamp, ReqresExpr[_t.Any]]
+type SortedReqresIndex = SortedDictIndex[URLType, TimeStamp, IndexedReqres]
 
 
 def complete_response(indexed: IndexedReqres) -> bool:
@@ -2090,14 +2087,14 @@ def cmd_mirror(cargs: _t.Any) -> None:
     skip_existing = cargs.allow_updates == "partial"
 
     singletons: bool
-    nearest: Timestamp | None
+    nearest: TimeStamp | None
     singletons, nearest = cargs.mode
 
     PathType: _t.TypeAlias = str
     seen_counter: SeenCounter[PathType] = SeenCounter()
 
     RequestIDType: _t.TypeAlias = bytes
-    PageIDType = tuple[Timestamp, RequestIDType]
+    PageIDType = tuple[TimeStamp, RequestIDType]
     RequestOrPageIDType = RequestIDType | PageIDType
 
     def get_request_id(net_url: URLType, rrexpr: ReqresExpr[_t.Any]) -> RequestIDType:
@@ -2135,12 +2132,12 @@ def cmd_mirror(cargs: _t.Any) -> None:
     max_depth: int = cargs.depth
     max_memory_mib = cargs.max_memory * 1024 * 1024
 
-    index: SortedIndex[URLType, Timestamp, IndexedReqres] = SortedIndex(
+    index: SortedReqresIndex = SortedDictIndex(
         key_key=identity, value_key=fst, ideal=nearest if singletons else None
     )
 
-    Queue = _c.OrderedDict[RequestOrPageIDType, IndexedReqres]
-    queue: Queue = _c.OrderedDict()
+    Queue = OrderedDict[RequestOrPageIDType, IndexedReqres]
+    queue: Queue = OrderedDict()
 
     if stdout.isatty():
         stdout.write_bytes(b"\033[32m")
@@ -2150,12 +2147,12 @@ def cmd_mirror(cargs: _t.Any) -> None:
     stdout.flush()
 
     def report_queued[Source: DeferredSource](
-        stime: Timestamp,
+        stime: TimeStamp,
         net_url: URLType,
         pretty_net_url: URLType,
         source: Source,
         level: int,
-        old_stime: Timestamp | None = None,
+        old_stime: TimeStamp | None = None,
     ) -> None:
         if stdout.isatty():
             stdout.write_bytes(b"\033[33m")
@@ -2165,15 +2162,19 @@ def cmd_mirror(cargs: _t.Any) -> None:
             stdout.write_str_ln(
                 ispace
                 + gettext("queued [%s] %s from %s")
-                % (stime.format(precision=3), durl, source.show_source())
+                % (
+                    stime.format(*time_format, precision=3),
+                    durl,
+                    source.show_source(),
+                )
             )
         else:
             stdout.write_str_ln(
                 ispace
                 + gettext("requeued [%s] -> [%s] %s from %s")
                 % (
-                    old_stime.format(precision=3),
-                    stime.format(precision=3),
+                    old_stime.format(*time_format, precision=3),
+                    stime.format(*time_format, precision=3),
                     durl,
                     source.show_source(),
                 )
@@ -2199,7 +2200,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                     qobj = queue.get(pid, None)
                     if qobj is not None:
                         qstime, _qrrexpr = qobj
-                        if nearer_to_than(nearest, stime, qstime):
+                        if is_closer(nearest, stime, qstime):
                             queue[pid] = indexed
                             report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1, qstime)  # fmt: skip
                         unqueued = False
@@ -2231,7 +2232,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
     indexed_num = index.size
 
     def remap_url_fallback(
-        stime: Timestamp, purl: ParsedURL, expected_content_types: list[str]
+        stime: TimeStamp, purl: ParsedURL, expected_content_types: list[str]
     ) -> PathType:
         trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime))
         trrexpr.values["num"] = 0
@@ -2243,7 +2244,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
         depth: int = 0
 
     def render[Source: DeferredSource](
-        stime: Timestamp,
+        stime: TimeStamp,
         net_url: URLType,
         rrexpr: ReqresExpr[Source],
         rel_out_path: PathType,
@@ -2291,7 +2292,9 @@ def cmd_mirror(cargs: _t.Any) -> None:
                 )
                 % (n, n100 / n_total, n_total, n100 / indexed_num, indexed_num)
             )
-        stdout.write_str_ln(ispace + gettext("stime [%s]") % (stime.format(precision=3),))
+        stdout.write_str_ln(
+            ispace + gettext("stime [%s]") % (stime.format(*time_format, precision=3),)
+        )
         stdout.write_str_ln(ispace + gettext("net_url %s") % (net_url,))
         stdout.write_str_ln(ispace + gettext("src %s") % (source.show_source(),))
         if stdout.isatty():
@@ -2323,7 +2326,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                 again = True
                 while again:
                     again = False
-                    for nobj in index.iter_nearest(unet_url, ustime, upredicate):
+                    for nobj in index.iter_closest(unet_url, ustime, upredicate):
                         response = nobj[1].reqres.response
                         assert response is not None
                         code = response.code
@@ -2503,7 +2506,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
     while len(queue) > 0:
         raise_first_delayed_signal()
 
-        new_queue: Queue = _c.OrderedDict()
+        new_queue: Queue = OrderedDict()
         enqueue = Mutable.depth < max_depth
 
         while len(queue) > 0:
@@ -2567,7 +2570,6 @@ def cmd_serve(cargs: _t.Any) -> None:
 
         return decorated
 
-    time_format = "%Y-%m-%d_%H:%M:%S"
     precision = 0
     precision_delta = Decimal(10) ** -precision
 
@@ -2603,7 +2605,7 @@ def cmd_serve(cargs: _t.Any) -> None:
 
     PathType: _t.TypeAlias = str
 
-    index: SortedIndex[URLType, Timestamp, IndexedReqres] = SortedIndex(
+    index: SortedReqresIndex = SortedDictIndex(
         key_key=identity,
         value_key=fst,
         ideal=cargs.replay if cargs.replay is not False else anytime.end,
@@ -2647,7 +2649,7 @@ def cmd_serve(cargs: _t.Any) -> None:
     all_urls = SortedList(map(lambda net_url: url_info(net_url, parse_url(net_url)), index.keys()))
 
     def get_visits(
-        url_like_re: _re.Pattern[str], start: Timestamp, end: Timestamp
+        url_like_re: _re.Pattern[str], start: TimeStamp, end: TimeStamp
     ) -> tuple[int, list[tuple[str, str, list[str]]]]:
         visits_total = 0
         url_visits = []
@@ -2658,7 +2660,7 @@ def cmd_serve(cargs: _t.Any) -> None:
             visits = []
             for when, _rrexpr in index.iter_range(net_url, start, end):
                 # if normal_document(t, v):
-                visits.append(when.format(time_format, precision=precision))
+                visits.append(when.format(*time_format_s, precision=precision))
                 visits_total += 1
 
             if len(visits) > 0:
@@ -2672,7 +2674,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         server_info_dict["dump_wrr"] = "/pwebarc/dump"
     if do_replay:
         server_info_dict["index_ideal"] = map_optional(
-            lambda x: x.format("@", precision=9), index.ideal
+            lambda x: x.format(*time_format_s), index.ideal
         )
         server_info_dict["replay_oldest"] = "/web/-inf/{url}"
         server_info_dict["replay_latest"] = "/web/+inf/{url}"
@@ -2790,7 +2792,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         if len(query) > 0:
             turl += "?" + _up.unquote(query)
 
-        interval: Timerange
+        interval: TimeRange
         if selector.endswith("*"):
             try:
                 interval = timerange(selector)
@@ -2803,15 +2805,15 @@ def cmd_serve(cargs: _t.Any) -> None:
                 {
                     "matching": True,
                     "selector": selector,
-                    "start": interval.start.format(),
-                    "end": interval.end.format(),
+                    "start": interval.start.format(*time_format),
+                    "end": interval.end.format(*time_format),
                     "pattern": turl,
                     "visits_total": visits_total,
                     "url_visits": url_visits,
                 }
             )
 
-        ideal: Timestamp
+        ideal: TimeStamp
         if selector in ["-inf", "0", "1", "oldest", "old", "first"]:
             interval = anytime
             ideal = anytime.start
@@ -2834,12 +2836,12 @@ def cmd_serve(cargs: _t.Any) -> None:
 
         net_url = pturl.net_url
 
-        uobj = index.get_nearest1(net_url, ideal, normal_document)
+        uobj = index.get_closest(net_url, ideal, normal_document)
         if uobj is None:
             if len(query) == 0:
                 # When the query is empty, WSGI loses the trailing "?" even
                 # when it was given by the client, so we have to check
-                uobj = index.get_nearest1(net_url + "?", ideal, normal_document)
+                uobj = index.get_closest(net_url + "?", ideal, normal_document)
             if uobj is None:
                 if "*" in turl:
                     url_like_re = _re.compile(translate(turl))
@@ -2869,7 +2871,7 @@ def cmd_serve(cargs: _t.Any) -> None:
                 )
 
         stime, rrexpr = uobj
-        stime_selector = stime.format(time_format, precision=precision)
+        stime_selector = stime.format(*time_format_s, precision=precision)
         if stime not in interval or interval.delta > precision_delta:
             bottle.redirect(f"/{namespace}/{stime_selector}/{turl}", 302)
             return None
@@ -2885,7 +2887,7 @@ def cmd_serve(cargs: _t.Any) -> None:
                 unamespace = "unavailable"
                 ustime_selector = stime_selector if fallbacks is not None else None
 
-                for uobj in index.iter_nearest(unet_url, stime, normal_document):
+                for uobj in index.iter_closest(unet_url, stime, normal_document):
                     ustime, urrexpr = uobj
                     response = urrexpr.reqres.response
                     assert response is not None
@@ -2894,7 +2896,7 @@ def cmd_serve(cargs: _t.Any) -> None:
                         # that's a definitive answer page, point this directly
                         # there to optimize away redirects
                         unamespace = "web"
-                        ustime_selector = ustime.format(time_format, precision=precision)
+                        ustime_selector = ustime.format(*time_format_s, precision=precision)
                         break
                     if code in redirect_response_codes:
                         # that's a redirect, point it there, but timestamp transitively
@@ -2989,7 +2991,7 @@ def cmd_serve(cargs: _t.Any) -> None:
 
             return data
         except Failure as exc:
-            exc.elaborate("while processing [%s] `%s`", stime.format(), turl)
+            exc.elaborate("while processing [%s] `%s`", stime.format(*time_format), turl)
             bottle.abort(500, exc.get_message(gettext))
             return None
         finally:
