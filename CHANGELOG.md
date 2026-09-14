@@ -6,6 +6,129 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [tool-v0.25.0] - 2026-09-14: Incremental improvements, bug fixes
+
+### Changed: Incompatible changes
+
+- `*`:
+
+  - Switched to `python-v3.13`, `black-v25.1.0`, `mypy-v1.20.1`, `pylint-v4.0.6`.
+
+   `python-v3.13` or later is required now.
+
+  - Changed semantics of `path`, `mq_path`, and similar `--expr`essions to never start with a "/" and to end with "/" when a non-trivial (non-empty and not-just-a-"/") `raw_path` of the input URL ends in a "/".
+
+    That is, now you have to write `%(netloc)s/%(path)s` and similar instead of `%(netloc)s%(path)s` and similar and those expressions might end in a slash now.
+
+    All builtin formats were edited accordingly.
+
+    Also, the latter could-end-in-a-slash property did produce some observable changes in `--output` formats, but the default ones stayed the same.
+
+  - Relatedly, from now on, when `raw_path` ends in a "/", the last element of `path_parts` will be an empty string.
+
+    Normally, you would expect the last element to just end in a "/" too in that case, as with Python and most other APIs that work over POSIX, but URLs are a bit crazy in that they allow path components to include quoted slashes, which makes the usual way of doing this inapplicable.
+
+    Thus, e.g., `http://example.com/abc/%2Fcde/fgh%2F/` would now be parsed as `path_parts == ["abc", "/cde", "fgh/", ""]`.
+
+  - Switched to `kisstdlib-v0.0.13`.
+
+    The main effect is that `<date1>--<date2>` date ranges no longer include all of `date2` by default.
+
+    This feature wasn't really used in the published versions, so the effects of this should be minimal.
+
+    In any case, the old semantics can be recovered by adding ".\$" at the end of each such expression.
+
+### Added/Changed: Misc
+
+- `serve`:
+
+  - **Introduced an explicit "find" request that answers to `/find/<selector>/<query>` requests and made all other request handlers --- including those of `web`, but excluding those of non-interactive `unavailable` requests --- to redirect there when `hoardy-web` decides it wants to perform a search.**
+
+  - **Added support for `selector`s that specify multiple coma-separated date+times and/or time intervals, as well as optional `re` and `glob` options.**
+
+  - **Thanks to the new `kisstdlib`, `selector`s can now also include advanced dynamic date computations, including in human-readable formats.**
+
+    You can now ask for all URLs in `this_week-1d--now` interval ("from last Sunday to now"), for example.
+
+    The [`README.md`](./tool/README.md) now has a bunch of examples.
+
+  - From now on, when performing redirects for `selector`s of "closest to given timestamp" kind and when generating search pages, produced timestamps always correctly and uniquely identify each reqres in the index, using the smallest possible timestamp `precision`.
+
+  - **Changed generated search pages to show date+time, `HTTP` request method, as well as request and response sizes for all matching reqres.**
+
+  - **Implemented `--fallback`, `--fallback-output`, and related options.**
+
+    With `--fallback` enabled and `--to` set the server will now write everything the clients submit via `POST` to disk, even when those `POST`ed dumps can't be parsed as proper `WRR`s.
+    Obviously, such submissions won't be added to the index and thus won't be replayed.
+    However, when `cbor2` library or `hoardy-web` fail to parse such dumps properly, they will no longer become stuck in the `extension`, either.
+    Which is why, from now on, the `--fallback` option is enabled by default.
+
+    This is exactly how `simple_server` (`hoardy-web-sas`) does it too.
+    If you don't trust your clients to not submit complete garbage, however, you can get the previous behaviour by running `serve` with `--no-fallback`.
+
+  - Added `--bucket-prefix` and `--fallback-bucket-prefix` options, making the use case of multiple `serve` instances dumping to a single `--to` destination to no longer need any external post-processing.
+
+- `scrub` (`get`, `mirror`, `serve`, etc):
+
+  - **Reworked `scrub` to no longer attempt (and fail) to scrub `*.ps`, `*.pdf`, and `*.epub` documents by default.**
+
+    Internally, replaced `dyndoc` document `kind` with `psdoc` `kind` and dropped `dyndoc` `kind` altogether.
+
+    The `psdoc` `kind` is now used to classify `*.ps` and `*.pdf` documents.
+    The `*.epub` documents are classified as `archive` now.
+
+    By default, `scrub` now leaves all of them as-is.
+
+    Most notably, this makes it possible to collect, archive, and then replay those documents via `mirror` and `serve` subcommands run with their default options.
+
+  - Reworked `scrub` with `+verbose` option set to rename URL-containing `HTML` tag attributes to `censored-<name>` when that attribute gets remapped in a "close-ended" way, instead of simply rewriting them into `javascript:void(0)`s.
+
+    Thus, e.g., `scrub` with `/jumps` option will now rename all `HTML a href`s pointing to unavailable URLs into `censored-href`s instead of just dropping those attributes.
+
+    This makes all those rewrites easier to inspect and debug.
+
+- `serve`:
+
+  - Improved performance by making requests for known-unavailable page requisites to be processed without touching the index at all.
+
+  - Improved performance of `/(find|web)/<whatever>/*` and similar requests by making them iterate over all the available URLs, without performing any URL matching at all.
+
+- `organize`:
+
+  - Added some more sanity checks, greatly reducing chances of data loss when files unexpectedly change on disk while the `organize` is working.
+
+- Documentation:
+
+  - Improved documentation.
+
+### Fixed: Misc
+
+- `scrub` (`get`, `mirror`, `serve`, etc):
+
+  - **Reworked `scrub` to censor out unavailable image sources from inside `srcset` attributes.**
+
+    **This fixed a bug where `scrub`bing an `HTML` page with an image that has multiple sources, some of which were archived but others were not, would produce a visually broken page in cases when the browser decides to use a fallback URL as that image's source.**
+
+    This fix needs some more testing, since it's unclear if the current implementation will work in all the possible combinations of `img` and `source` tags in all the browsers, but it does work for Firefox and the pages I tested it with.
+
+  - Fixed `scrub`bing of `source` and `SVG use` tags.
+
+  - Fixed `scrub`'s `+verbose` option to work for stand-alone `CSS` files properly.
+
+  - Fixed `--remap-closed` command line option failing to work properly.
+
+  - Fixed a couple of obscure URL quoting issues, which fixed:
+
+    - a bug where `serve` would sometimes fail to find a previously archived requested URL in its index;
+
+    - a bug where `mirror` would sometimes generate broken links.
+
+  - Fixed `scrub`s `+inline_fallback_icon` option failing to work property in some cases.
+
+- `serve`:
+
+  - Fixed another bug where `serve` would sometimes fail to find a previously archived requested URL in its index.
+
 ## [extension-v1.30.0] - 2026-07-27: Better `DOM`-snapshots, incremental improvements, bug fixes
 
 Yes, `extension-v1.29.0` was skipped deliberately.
@@ -3755,6 +3878,7 @@ All planned features are complete now.
 
   - Initial public release.
 
+[tool-v0.25.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.24.0...tool-v0.25.0
 [extension-v1.30.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.28.0...extension-v1.30.0
 [extension-v1.28.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.27.0...extension-v1.28.0
 [extension-v1.27.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.26.0...extension-v1.27.0
