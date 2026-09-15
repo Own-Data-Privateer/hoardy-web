@@ -3960,58 +3960,152 @@ All planned features are complete now.
 
 # TODO
 
-... each roughly sorted according to the expected order things will probably get implemented.
+... sorted according to the approximate topological order of dependencies between these features.
 
 ## `Hoardy-Web` extension
 
 - Core, UI:
+
+  - Track tab navigations and allow them to be used as boundaries between batches of reqres saved in limbo mode.
+
+  - Implement an option for automatic capture of `DOM` snapshots when a web page settles.
+
+  - Implement an option for automatic capture of `DOM` snapshots when a page's content changes.
+
+  - Add a popup UI section for `Closed tabs`, so that you could easily collect/discard `in_limbo` reqres from such tabs.
+
+  - Make it so that capturing a bunch of pages from the same web site into limbo and then archiving a subset of them would always produce a fully working replay, regardless of the order those pages were captured in and which of those pages were then discarded:
+
+    - Allow a single reqres to record multiple `tabId`s thus allowing the same reqres to be `in_limbo` in multiple tabs at the same time.
+
+    - Ensure that when a `complete_fc` reqres already has an equivalent `complete` or `complete_fc` `in_limbo` reqres, the resulting reqres get deduplicated/merged and the older/merged reqres gets assigned to both `tabId`s.
+
+    - Implement automatic assignment of background reqres to `tabId`s of tabs with their `documentUrl`s.
+
+    - Implement web page -\> requisite URL extraction function and use that to attach `in_limbo` reqres to multiple `tabId`s too, even if the browser fails to generate any relevant `complete_fc` reqres at all (which the most common case on Chromium).
+
+  - Maybe: Implement similar deduplication between newly captured `complete_fc` reqres and reqres in recent history/log too.
+
+  - Implement hierarchical configuration profiles:
+
+    - (~75% done) Move all tracking- and problematic-related options into config profiles.
+
+    - Implement per-host profiles and start re-applying them to per-tab configs on page navigations.
+
   - Merge `Pick into limbo` and `Drop into limbo` option into one.
     I.e., remove all archival-related decision making from the machinery that puts reqres into limbo.
 
     `Collect/discard all in limbo` and buttons should then become `Continue processing all in limbo`.
 
-    This behaviour would be both simpler to more useful for some use cases.
+    This behaviour would be both simpler to more useful for many use cases.
 
     It will also allow us to simplify the behaviour of `Auto-unmark 'problematic' reqres ... when a new 'GET' reqres replaces it ... regardless of its 'in_limbo' state` option or just remove it altogether.
-  - Improve integration with `hoardy-web serve`.
-  - (~25% done) Reorganize tracking- and problematic-related options into config profiles, allow them to override each over.
-  - Implement per-host profiles.
-- UI:
-  - Improve `Internal State` and `Saved into Local Storage` UIs.
+
+  - Improve `Internal State` and `Saved into Local Storage` UIs, allowing the actions to be applied to specific reqres.
+
   - Add option persistence to `Internal State` and `Saved into Local Storage` UIs.
-- Core, UI:
-  - Add a popup UI section for `Closed tabs`, so that you could easily collect/discard `in_limbo` reqres from such tabs.
-  - Track navigations and allow to use them as boundaries between batches of reqres saved in limbo mode.
-  - Implement automatic capture of `DOM` snapshots when a page changes.
-- Core:
+
   - Implement automatic management of `network.proxy.no_proxies_on` setting to allow `Hoardy-Web` archival to an archiving server to work out of the box when using proxies.
-  - Maybe: Dumping straight into `WARC`, so that third-party tools (i.e. not just `hoardy-web`) could be used for everything except capture.
+
+  - Maybe: Implement dumping straight into `WARC`, so that third-party tools (i.e. not just `hoardy-web`) could be used for everything except capture.
 
 ## `hoardy-web` tool
 
-- `*`:
-  - Automagically fixup `DOM`-snapshots of `extension <= v1.30.0`.
+- `serve`:
+
+  - Figure out how to make Python's `cgi`/`wsgiref` and `bottle` stop un-escaping request URLs automatically.
+
+    The issue is that those modules always rewrite URLs of requests to, e.g., `/web/2/https://example.org/test%2F.txt` into `/web/2/https://example.org/test/.txt`, which is a useful behaviour in most cases, but is, technically, incorrect.
+    According to RFCs, `%2F` can't be interpreted as a `/` in this case, it must stay quoted, and `hoardy-web` follows the RFCs here, but `cgi`/`wsgiref` modules do not.
+    The situation is similar for some other characters that can be escaped but must not be un-escaped in the most general case.
+    This prevents `serve` from generating answers for some requested URLs, since it's impossible to reverse such a transformation in a deterministic way.
+
+    (Such URLs work fine when rendering such inputs with `mirror`, though.)
+
+  - Index more `WRR` metadata into memory so that `/find/*/*` would not need to touch the disk at all.
+
+  - Add an option to match non-`glob` and non-`re` patterns in `/find/` with `similar` option enabled by default.
+
+  - Make search much more efficient.
+
+    - Make a version of URL parser that admits `glob`s in the `netloc`s.
+
+    - Index everything per-host.
+
+    - Use the above parser to match `globs` per-host first, per-URL later, thus making most common searches `O(len(distinct_hostnames))` instead of `O(len(indexed_reqres))`.
+
+    - Implement `--lazy-index` or some such, allowing said per-host indexing to be done lazily.
+
+  - Implement on-the-fly generation of `--symlink --latest` hierarchies when running with `--archive-to`.
+
+- `serve`, `mirror`, `*`:
+
   - Allow unloading and lazy re-loading of reqres loaded from anything other than separate `WRR` files.
     The fact that this is not possible at the moment makes memory consumption in those cases rather abysmal.
-- `serve`, `*`:
-  - File pre-indexing into an `sqlite` database.
-  - Search via the `sqlite` index.
-- `mirror`, `organize`:
-  - Implement on-the-fly mangling of reqres, so that, e.g. you could `organize` or `mirror` a reqres containing `https://web.archive.org/web/<something>/<URL>` as if it was just a `<URL>`.
-- `mirror`, `scrub`:
-  - Handle SRI things.
-  - Handle CSP things.
-- `mirror`:
-  - Implement `mirror --standalone`, which would inline all resources into each mirrored page, a-la `SingleFile`.
+
+  - Implement `WRR` file pre-indexing into an `sqlite` database.
+
+  - Implement search via said `sqlite` index.
+
 - `organize`:
-  - Implement automatic discernment of relatedness of `WRR` files (by URLs and similarity) and packing of related files into `WRR` bundles.
-  - Maybe: Implement data de-duplication between `WRR` files.
+
+  - Simplify the implementation! The current state is awful.
+
+  - Fix `WRR` deduplication to work properly in all the modes, not just `--copy`.
+
   - Implement `un206` command/option, which would reassemble a bunch of `GET 206` `WRR` files into a single `GET 200` `WRR` file.
+
+  - Implement automatic deduplication for `WRR`s that are followed by equivalent `WRR`s `from_cache`.
+
+  - Implement automatic data de-duplication between `WRR` files.
+
+  - Implement automatic fixups for `DOM`-snapshots of `extension <= v1.30.0`.
+
+  - Implement `bundle` command/option that packs given inputs into `WRR` bundles.
+
+  - Implement automatic discernment of relatedness of `WRR` files (by URLs and similarity) and packing of related files into `WRR` bundles.
+
+- `mirror`, `serve`, `organize`:
+
+  - Implement on-the-fly mangling of reqres, so that, e.g. you could `organize` or `mirror` a reqres containing `https://web.archive.org/web/<something>/<URL>` as if it was just a `<URL>`.
+
+- `mirror`:
+
+  - Implement `mirror --standalone`, which would inline all resources into each mirrored page, a-la `SingleFile`.
+
+- `scrub`:
+
+  - Handle SRI things properly.
+
+  - Handle CSP things properly.
+
 - `import`, `export`:
-  - Converters from `HAR` and `WARC` to `WRR`.
-  - Converter from `WRR` to `WARC`.
-  - Converter from `PCAP` to `WRR`.
-- `serve`:
-  - Allow to generate `--symlink --latest` hierarchies on-the-fly when running with `--archive-to`.
+
+  - Implement converters:
+
+    - from `HAR` to `WRR` (without going though `mitmproxy`),
+    - from `WARC` to `WRR`,
+    - from `wget -mpk` and similar outputs to `WRR`,
+    - from `SingleFile` outputs to `WRR`,
+    - from `PCAP` to `WRR`,
+    - from `WRR` to `WARC`.
+
 - `*`:
-  - Full text indexing and search.
+
+  - Implement full text indexing and search.
+
+## The integration between the extension and the tool
+
+- Implement a shortcut that copies a bare page URL on replay pages.
+
+- Implement an option to color archived/unavailable links on replay pages differently.
+
+- Implement Memento API or something similar.
+
+- Implement navigation between archived page visits with back/forward shortcuts in `Hoardy Web`.
+
+  - Implement the equivalent of `git bisect` for the above feature.
+
+- Implement server-side reqres stashing and support it extension-side.
+
+- Implement (optional) deletion of recently archived server-side reqres from the `Internal State` UI so that accidentally archived things could be un-archived easily.
