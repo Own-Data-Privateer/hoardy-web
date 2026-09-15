@@ -95,11 +95,11 @@ You can then view, replay, mirror, scrape, and/or index your archived data later
 
 In short, if you like the idea of being able to refer back to web pages your browser loaded before, exactly as they were when you've loaded them, regardless of your reasons for doing so, then `Hoardy-Web` is for you.
 
-If you are already running multiple browsers or browser profiles to isolate your logged-out/anonymous and logged-in browsing sessions from each other and you only want to add capture and archival to the former, then `Hoardy-Web` will integrate into [your existing browsing workflow](./extension/page/help.org#browser-profiles) seamlessly.
+If you never login to any websites or you are running multiple browsers or browser profiles to isolate your logged-out/anonymous and logged-in browsing sessions from each other and you want to add archival to the logged-out sessions only, then `Hoardy-Web` will integrate into [your existing browsing workflow](./extension/page/help.org#browser-profiles) seamlessly.
 
-**However, if you want to archive your logged-in sessions too, or if you are not isolating your browsing sessions at all, then introducing `Hoardy-Web` into your setup could instead become a liability.
+**However, if you want to archive (some of) your logged-in sessions too and you are not isolating your browsing sessions already, then introducing `Hoardy-Web` into your setup could instead become a liability.
 If you let it, `Hoardy-Web` will happily capture and archive all your login credentials, in plain text.**
-[There are ways to work around this](./extension/page/help.org#no-credentials), so, you can use `Hoardy-Web` even then, but it will require special care and self-training.
+If you don't want that, `Hoardy-Web` supports [workflows that exclude archival of login credentials](./extension/page/help.org#no-credentials), but they require special care and self-training.
 
 # <span id="why"/>Why does `Hoardy-Web` exist?
 
@@ -107,11 +107,11 @@ If you let it, `Hoardy-Web` will happily capture and archive all your login cred
 
 If so, isn't it kind of annoying that your browser has to re-fetch things from the Internet and/or re-run all the relevant `JavaScript` each time you return to a bookmarked page or browser tab that was previously unloaded from memory, or after a browser restart, or after a PC reboot?
 
-Wouldn't it be nice if there was a tool that could allow you to instead **view the contents of your old bookmarks and/or tabs, instantly, even if your browser unloaded them, without re-loading anything from the Internet and/or re-running any `JavaScript` at all**, by re-loading previously captured states from disk instead, thus making things both more efficient (especially when you capture and then replay `DOM` snapshots of websites that offload their `HTML` rendering to client-side `JavaScript`), convenient (since you can now read those old tabs on a plane, or at sea), and more private (since your replays won't be tracking you even if the original pages did)?
+Wouldn't it be nice if there was a tool that would allow you to instead **view the contents of your old bookmarks and/or tabs, instantly, even if your browser unloaded them, without re-loading anything from the Internet and/or re-running any `JavaScript` at all**, by re-loading previously captured states from disk instead, thus making things both more efficient (especially when you capture and then replay `DOM` snapshots of websites that offload their `HTML` rendering to client-side `JavaScript`), convenient (since you can now read those old tabs on a plane, or at sea), and more private (since your replays won't be tracking you even if the original pages did)?
 
 ## Do you ever find yourself wanting to refer back to web pages you've visited a long time ago?
 
-Say, you wake up remembering something interesting you saw on the Web a long time ago.
+Say, you wake up remembering something interesting you saw on the Web a few years ago ago.
 Knowing you won't find it in your normal browsing history, which only contains the URLs and the titles of the pages you visited in the last 3 months, you try looking it up on Google.
 You fail.
 Eventually, you remember the website you seen it at, or maybe you re-discover the link in question in an old message to/from a friend, or maybe a tool like [recoll](https://www.lesbonscomptes.com/recoll/index.html) or [Promnesia](https://github.com/karlicoss/promnesia) helps you.
@@ -178,11 +178,11 @@ Sure, web archiving services are awesome, but:
 
   Meanwhile, running your own web crawler over the pages you recently visited is both inefficient (since it will fetch everything twice) and annoying to setup.
 
-So, wouldn't it be nice if there was a tool that could allow you to **automatically and efficiently capture everything your browser fetches from the Internet while you surf the Web, put it all into your own private archive nobody else could censor, and allow you to easily search, mirror, replay, and share captured versions of previously visited web pages later**?
+So, wouldn't it be nice if there was a tool that would allow you to **automatically and efficiently capture everything your browser fetches from the Internet while you surf the Web, put it all into your own private archive nobody else could censor, and allow you to easily search, mirror, replay, and share captured versions of previously visited web pages later**?
 
 ## Do you find yourself making custom website data scrapers, for accessibility and/or data extraction/processing reasons?
 
-Say, there is a web page that can not be easily fetched via `curl`/`wget` (because it is behind a paywall or complex authentication method that is hard to reproduce outside of a browser) but for accessibility or just simple reading comfort reasons each time you visit that page you want to automatically feed its source to a script that strips and/or modifies its `HTML` markup in a website-specific way and feeds it into a TTS engine, a Braille display, or a book reader app.
+Say, there is a web page that can not be easily fetched via `curl`/`wget` (because it is behind a paywall or complex authentication method that is hard to reproduce outside of a web browser) but for accessibility or just simple reading comfort reasons each time you visit that page you want to automatically feed its source to a script that strips and/or modifies its `HTML` markup in a website-specific way and feeds it into a TTS engine, a Braille display, or a book reader app.
 
 With most modern web browsers you can do TTS either out-of-the-box or by installing an add-on (though, be aware of privacy issues when using most of those), but tools that can do website-specific accessibility without also being website-specific UI apps are very few.
 
@@ -301,9 +301,9 @@ You can then:
 
 - use your `hoardy-web serve` instance to run advanced queries over your archived visits in a [Wayback Machine](https://web.archive.org/)-like manner, e.g.:
 
-  - list all visits matching a `glob` pattern <http://127.0.0.1:3210/web/*/https://en.wikipedia.org/wiki/*>,
+  - list all visits matching a given URL `glob` pattern <http://127.0.0.1:3210/web/*/https://en.wikipedia.org/wiki/*>,
   - ... but only in 2024 <http://127.0.0.1:3210/web/2024*/https://en.wikipedia.org/wiki/*>,
-  - list all visits matching a `re` pattern collected in the last two weeks <http://127.0.0.1:3210/web/today-2w--now,re/https://archiveofourown.org/works/[0-9]+/?.*>,
+  - list all visits matching a given URL `re` pattern collected in the last two weeks <http://127.0.0.1:3210/web/today-2w--now,re/https://archiveofourown.org/works/[0-9]+/?.*>,
   - etc;
 
 - use `hoardy-web mirror` to generate static website mirrors from your archived data in a `wget -mpk`-like manner, e.g., to mirror all URL matching a certain prefix and any of their requisites (so that, e.g., images hosted on other hosts would be mirrored too):
