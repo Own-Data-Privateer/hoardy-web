@@ -6,7 +6,7 @@
 
 usage() {
     cat << EOF
-# usage: $0 [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] [--include TARGET]* [--exclude TARGET]* [--keep] PATH [PATH ...]
+# usage: $0 [--help] [--set-tag TAG] [--wine] [--all|--subset NUM] [--long|--short NUM] [--include TARGET]* [--exclude TARGET]* [--keep] PATH [PATH ...]
 
 Sanity check and test \`hoardy-web\` command-line interface.
 
@@ -44,6 +44,9 @@ Sanity check and test \`hoardy-web\` command-line interface.
   \`\`\`
 EOF
 }
+
+PACKAGE=hyweb
+TAG=$(git log --format="%H" | head -n 1)
 
 ORIG_PWD=$PWD
 export PYTHONPATH="$PWD:$PYTHONPATH"
@@ -93,6 +96,10 @@ while (($# > 0)); do
             usage;
             exit 0;
             ;;
+        --set-tag)
+            TAG="$2"
+            shift
+            ;;
         --wine)
             in_wine=1
             ;;
@@ -135,6 +142,9 @@ done
 
 for arg in "${args[@]}"; do
     src=$(readlink -f "$arg")
+
+    # generate an ID for this `$src`
+    INPUT=$(echo "$src" | sha256sum - | sed -E 's/^(......).*/\1/')
 
     setup_tests
 
