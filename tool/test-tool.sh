@@ -188,8 +188,8 @@ for arg in "${args[@]}"; do
 
     cd "$TESTS_DIR"
 
-    begin import bundle
-
+    # import the inputs
+    begin import bundle source
     idir=import-bundle
     if [[ -z "$in_wine" ]]; then
         ok_no_stderr import-bundle self import bundle --quiet --stdin0 --to $idir < "$stdin0"
@@ -198,12 +198,13 @@ for arg in "${args[@]}"; do
     fi
     describe-forest $idir > $idir.describe-dir
     [[ -n "$do_fixed_dir" ]] && fixed_file "$src" $idir.describe-dir
-
     end
 
+    # create `--stdin0` input
     input0=input0
     find $idir -type f -print0 | sort -z > "$input0"
 
+    # ... and its short subset
     if [[ -n "$short" ]]; then
         sinput0=sinput0
         cat "$input0" | shuf -z | head -zn "$short" > "$sinput0"
@@ -211,23 +212,31 @@ for arg in "${args[@]}"; do
         sinput0="$input0"
     fi
 
-    if [[ -z "$in_wine" ]] && start filter .part; then
+    if [[ -z "$in_wine" ]] && start "stream .part filter"; then
+        # test that `.part` files get filtered out properly
+
+        # run `stream`
         ok_stdio dotpart-1 self stream --format=raw -ue url $idir
 
+        # generate some `.part` files
         while IFS= read -r -d $'\0' fname; do
             cp "$fname" "$fname.part"
         done < "$sinput0"
 
+        # run `stream` again
         ok_stdio dotpart-2 self stream --errors skip --format=raw -ue url $idir
 
+        # remove `.part` files
         while IFS= read -r -d $'\0' fname; do
             rm "$fname.part"
         done < "$sinput0"
 
+        # ensure the above two `stream`s produced same results
         equal_file dotpart-1.stdio dotpart-2.stdio
     fi
 
-    if [[ -z "$in_wine" ]] && start find; then
+    if [[ -z "$in_wine" ]] && start "find snapshot"; then
+        # test `find` outputs
         ok_fixed_stdio_selfsame "$src" find-200-1024 $idir "$input0" \
             self find --status-re .200C --and "response.body|len|> 1024"
 
@@ -235,25 +244,35 @@ for arg in "${args[@]}"; do
             self find --response-mime text/html --grep-re '\bPotter\b'
     fi
 
-    if [[ -z "$in_wine" ]] && start pprint; then
+    if [[ -z "$in_wine" ]] && start "pprint sanity"; then
+        # test `pprint`
         ok_selfsame pprint $idir "$input0" self pprint
         ok_selfsame pprint-u $idir "$input0" self pprint -u
     fi
 
-    if [[ -z "$in_wine" ]] && start stream; then
+    if [[ -z "$in_wine" ]] && start "stream sanity"; then
+        # test `stream`
         ok_selfsame stream $idir "$input0" self stream "${exprs[@]}"
         ok_selfsame stream-u $idir "$input0" self stream -u "${exprs[@]}"
     fi
 
-    if [[ -z "$in_wine" ]] && start organize; then
+    if [[ -z "$in_wine" ]] && should_start "organize sanity"; then
+        # ensure `organize --copy` works
+        begin "organize --copy sanity"
         ok_no_stderr organize-1 self organize --quiet --copy --to organize-1 $idir
         equal_forest_dir $idir.describe-dir organize-1
 
+        # ensure `organize --hardlink` works
+        begin "organize --hardlink sanity"
         ok_no_stderr organize-2 self organize --quiet --hardlink --to organize-2 organize-1
         equal_forest_dir $idir.describe-dir organize-2
 
+        # ensure `organize --symlink` works
+        begin "organize --symlink sanity"
         ok_no_stderr organize-3 self organize --quiet --symlink --output hupq_msn --to organize-3 organize-1
 
+        # ensure these are noops
+        begin "organize --(copy|hardlink|symlink) reogranize sanity"
         reorganize() {
             ok self organize --copy --to organize-1 organize-2
             ok self organize --hardlink --to organize-1 organize-2
@@ -268,7 +287,8 @@ for arg in "${args[@]}"; do
         ok_no_stderr reorganize reorganize
     fi
 
-    if [[ -z "$in_wine" ]] && start organize --symlink --latest; then
+    if [[ -z "$in_wine" ]] && start "organize --symlink --latest snapshot"; then
+        # test `organize --symlink --latest` outputs
         ok_fixed_stdio "$src" organize-sl \
             self organize --symlink --latest --output hupq --to organize-sl $idir
 
@@ -277,7 +297,9 @@ for arg in "${args[@]}"; do
 
         # TODO: this, currently broken
         # equal_dir organize-sl organize-sls
+    fi
 
+    if [[ -z "$in_wine" ]] && start "organize --symlink --latest sanity"; then
         lines=$(cat "$input0" | tr '\0' '\n' | wc -l)
 
         cat "$input0" | head -zn $((lines/3 + 1)) | \
@@ -298,7 +320,7 @@ for arg in "${args[@]}"; do
         equal_forest_dir $idir.describe-dir $idir
     fi
 
-    if start serve; then
+    if start "serve sanity"; then
         # feed results of `import bundle` to `serve` via `curl`, then check
         # that the results are the same
 
@@ -358,19 +380,22 @@ for arg in "${args[@]}"; do
         done < "$sinput0"
     fi
 
-    if [[ -z "$in_wine" ]] && start mirror url; then
+    if [[ -z "$in_wine" ]] && start "mirror urls snapshot"; then
+        # test URL rendering
         ok_fixed_stdio "$src" mirror-urls \
             self mirror --copy --to mirror-urls --output hupq_n "${uexprs[@]}" $idir
         [[ -n "$do_fixed_dir" ]] && fixed_dir "$src" mirror-urls
     fi
 
-    if [[ -z "$in_wine" ]] && start mirror response; then
+    if [[ -z "$in_wine" ]] && start "mirror responses snapshot"; then
+        # test `mirror` outputs
         ok_fixed_stdio "$src" mirror-responses \
             self mirror --to mirror-responses --output hupq_n $idir
         [[ -n "$do_fixed_dir" ]] && fixed_dir "$src" mirror-responses
     fi
 
-    if [[ -z "$in_wine" ]] && start get; then
+    if [[ -z "$in_wine" ]] && start "get sanity"; then
+        # test `get`
         while IFS= read -r -d $'\0' path; do
             ok_no_stderr get-1 self get "${exprs[@]}" "$path"
             ok_no_stderr get-2 self get --sniff-force "${exprs[@]}" "$path"
@@ -378,25 +403,27 @@ for arg in "${args[@]}"; do
         done < "$sinput0"
     fi
 
-    if [[ -z "$in_wine" ]] && start run; then
+    if [[ -z "$in_wine" ]] && start "run sanity"; then
+        # test `run`
         while IFS= read -r -d $'\0' path; do
             ok_no_stderr run-1 self run cat "$path"
             ok_no_stderr run-2 self run -n 2 -- diff "$path" "$path"
         done < "$sinput0"
     fi
 
-    if [[ -z "$in_wine" ]] && start stream raw; then
+    # test `stream`
+    if [[ -z "$in_wine" ]] && start "stream raw sanity"; then
         ok_selfsame stream-raw   $idir "$input0" self stream --format=raw "${exprs[@]}"
         ok_selfsame stream-raw-u $idir "$input0" self stream --format=raw -u "${exprs[@]}"
     fi
 
-    if [[ -z "$in_wine" ]] && start stream json; then
+    if [[ -z "$in_wine" ]] && start "stream json sanity"; then
         ok_selfsame stream-json    $idir "$input0" self stream --format=json "${exprs[@]}"
         ok_selfsame stream-json-u  $idir "$input0" self stream --format=json -u "${exprs[@]}"
     fi
 
     # currently broken
-    if false && [[ -z "$in_wine" ]] && start stream cbor; then
+    if false && [[ -z "$in_wine" ]] && start "stream cbor sanity"; then
         ok_selfsame stream-cbor    $idir "$input0" self stream --format=cbor "${exprs[@]}"
         ok_selfsame stream-cbor-u  $idir "$input0" self stream --format=cbor -u "${exprs[@]}"
     fi
