@@ -6,7 +6,7 @@
 
 usage() {
     cat << EOF
-# usage: $0 [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] [--only TARGET]* [--keep] PATH [PATH ...]
+# usage: $0 [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] [--include TARGET]* [--exclude TARGET]* [--keep] PATH [PATH ...]
 
 Sanity check and test \`hoardy-web\` command-line interface.
 
@@ -110,8 +110,12 @@ while (($# > 0)); do
             short=$2
             shift
             ;;
-        --only)
+        --include)
             INCLUDE+=("$2")
+            shift
+            ;;
+        --exclude)
+            EXCLUDE+=("$2")
             shift
             ;;
         --keep)
