@@ -337,58 +337,74 @@ for arg in "${args[@]}"; do
 
         mkdir -p serve
         if [[ -z "$in_wine" ]]; then
-            python3 -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to serve &
+            python3 -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to serve &>serve.stdout </dev/null &disown
         else
-            wine python -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to serve &
+            wine python -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to serve &>serve.stdout </dev/null &disown
         fi
         to_kill $!
-        sleep 3
 
-        # just to be sure
-        curl "http://127.1.1.1:3210/hoardy-web/server-info" > serve.info 2> /dev/null
-        fixed_file "$src" serve.info
-
-        submit() {
-            curl --data-binary "@-" -H "Content-type: application/x-wrr+cbor" "http://127.1.1.1:3210/pwebarc/dump"
-        }
-
-        # feed it some trash
-        echo -n ABC | submit
-        echo -n BCD | submit
-
-        # feed it some data
-        while IFS= read -r -d $'\0' fname; do
-            zcat "$fname" | submit
-        done < "$sinput0"
-
-        # kill immediately, which must work
-        kill_all_to_kill
-
-        # ensure the trash was put into fallback-default
-        describe-forest serve/fallback-default > serve.fallbacks
-        fbs=$(cat serve.fallbacks | grep reg | wc -l)
-        if (($fbs != 2)); then
-            cat serve.fallbacks
-            error "incorrect serve fallbacks number"
-        fi
-        if ! grep b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78 serve.fallbacks &>/dev/null || \
-           ! grep eff1f7c83bd8f6918571a75d6e1905cc97c246c5d4cf5f16efaeeb9a0141edbb serve.fallbacks &>/dev/null ; then
-            error "incorrect serve fallbacks content"
-        fi
-
-        # ensure no .part files are left
-        find serve -name '*.part' > serve.parts
-        if [[ -s serve.parts ]]; then
-            cat serve.parts
-            error "serve left some \`.part\` files"
-        fi
-
-        # test equality to import-bundle
-        while IFS= read -r -d $'\0' fname; do
-            if ! diff -U 0 "$fname" "serve/default/${fname#import-bundle/}" ; then
-                error "$fname is not the same"
+        # wait for it to start
+        ok=
+        for ((i=0; i<30; ++i)); do
+            curl "http://127.1.1.1:3210/hoardy-web/server-info" >serve.info 2>/dev/null
+            if [[ $? == 0 ]]; then
+                ok=1
+                break
             fi
-        done < "$sinput0"
+            sleep 1
+        done
+
+        if [[ -z "$ok" ]]; then
+            tail serve.stdout
+            error "serve: startup failed"
+        else
+            fixed_file "$src" serve.info
+
+            submit() {
+                curl --data-binary "@-" -H "Content-type: application/x-wrr+cbor" "http://127.1.1.1:3210/pwebarc/dump" 2>/dev/null
+                if [[ $? != 0 ]]; then
+                    error "serve: curl submission failed"
+                fi
+            }
+
+            # feed it some trash
+            echo -n ABC | submit
+            echo -n BCD | submit
+
+            # feed it some data
+            while IFS= read -r -d $'\0' fname; do
+                zcat "$fname" | submit
+            done < "$sinput0"
+
+            # kill immediately, which must work
+            kill_all_to_kill
+
+            # ensure the trash was put into fallback-default
+            describe-forest serve/fallback-default > serve-fallbacks.describe-dir
+            num_fallbacks=$(cat serve-fallbacks.describe-dir | grep 'wrr reg ' | wc -l)
+            if ((num_fallbacks != 2)); then
+                abbrev_file serve-fallbacks.describe-dir
+                error "serve: fallbacks number is incorrect"
+            fi
+            if ! grep b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78 serve-fallbacks.describe-dir &>/dev/null || \
+               ! grep eff1f7c83bd8f6918571a75d6e1905cc97c246c5d4cf5f16efaeeb9a0141edbb serve-fallbacks.describe-dir &>/dev/null ; then
+                error "serve: fallbacks content is incorrect"
+            fi
+
+            # ensure no .part files are left
+            find serve -name '*.part' > serve.parts
+            if [[ -s serve.parts ]]; then
+                cat serve.parts
+                error "serve: left some \`.part\` files"
+            fi
+
+            # test equality to import-bundle
+            while IFS= read -r -d $'\0' fname; do
+                if ! diff -U 0 "$fname" "serve/default/${fname#import-bundle/}" ; then
+                    error "serve: $fname is not the same"
+                fi
+            done < "$sinput0"
+        fi
     fi
 
     if [[ -z "$in_wine" ]] && start "mirror urls snapshot"; then
