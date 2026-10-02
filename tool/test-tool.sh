@@ -329,9 +329,6 @@ for arg in "${args[@]}"; do
                 self organize --symlink --latest --output hupq --to organize-seq --stdin0
 
         equal_dir organize-sl organize-seq
-
-        # ensure `organize` did not touch the source dir
-        equal_forest_dir $idir.describe-dir $idir
     fi
 
     if start "serve sanity"; then
@@ -442,6 +439,9 @@ for arg in "${args[@]}"; do
         ok_selfsame stream-cbor-u  $idir "$input0" self stream --format=cbor -u "${exprs[@]}"
     fi
 
+    # ensure none of the above modified the source dir
+    begin "no source changes"
+    equal_forest_dir $idir.describe-dir $idir
     end
 
     cd "$ORIG_PWD"
