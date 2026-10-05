@@ -313,6 +313,16 @@ for arg in "${args[@]}"; do
         ok_no_stderr reorganize reorganize
     fi
 
+    if [[ -z "$in_wine" ]] && start "organize --dry-run sanity"; then
+        # ensure than `organize --dry-run` generates no results
+        for kind in copy hardlink symlink move; do
+            ok_no_stderr organize-dry-run-$kind self organize --quiet --dry-run --$kind --to organize-dry-run-$kind $idir
+            if [[ -e organize-dry-run-$kind ]]; then
+                error "organize --dry-run --$kind: produced some outputs"
+            fi
+        done
+    fi
+
     if [[ -z "$in_wine" ]] && start "organize --symlink --latest snapshot"; then
         # test `organize --symlink --latest` outputs
         ok_fixed_stdio "$src" organize-sl \
