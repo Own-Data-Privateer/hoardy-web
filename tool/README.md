@@ -1800,7 +1800,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
-  : don't log computed updates and don't print end-of-filtering warnings to stderr
+  : don't log file updates and don't print end-of-filtering warnings to stderr
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -2440,7 +2440,7 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
-  : don't log computed updates and don't print end-of-filtering warnings to stderr
+  : don't log file updates and don't print end-of-filtering warnings to stderr
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -2542,7 +2542,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
-  : don't log computed updates and don't print end-of-filtering warnings to stderr
+  : don't log file updates and don't print end-of-filtering warnings to stderr
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -2661,7 +2661,7 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
-  : don't log computed updates and don't print end-of-filtering warnings to stderr
+  : don't log file updates and don't print end-of-filtering warnings to stderr
 
 - caching:
   - `--max-memory INT`

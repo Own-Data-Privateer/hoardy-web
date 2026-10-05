@@ -3621,12 +3621,11 @@ if other parts of the date are not specified, they get substituted from `<year>-
         )
 
     def add_impure(cmd: _t.Any) -> None:
-        grp = cmd.add_mutually_exclusive_group()
-        grp.add_argument("--dry-run", action="store_true",
+        cmd.add_argument("--dry-run", action="store_true",
             help=_("perform a trial run without actually performing any changes"),
         )
-        grp.add_argument("-q", "--quiet", action="store_true",
-            help=_("don't log computed updates and don't print end-of-filtering warnings to stderr"),
+        cmd.add_argument("-q", "--quiet", action="store_true",
+            help=_("don't log file updates and don't print end-of-filtering warnings to stderr"),
         )
 
     def add_common(cmd: _t.Any, kind: str, filter_what: str) -> None:
