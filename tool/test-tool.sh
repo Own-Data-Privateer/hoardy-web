@@ -276,6 +276,18 @@ for arg in "${args[@]}"; do
         ok_no_stderr organize-1 self organize --quiet --copy --to organize-1 $idir
         equal_forest_dir $idir.describe-dir organize-1
 
+        # ensure `--move` deduplicates and deletes things
+        begin "organize --move sanity"
+        ok_no_stderr organize-move self organize --quiet --move --to organize-move organize-1
+        equal_forest_dir "$idir.describe-dir" organize-move
+
+        leftovers=$(describe-forest organize-1 | grep reg | wc -l)
+        if ((leftovers != 0)); then
+            error '`organize --move` left some files over in organize-1'
+        fi
+        rm -rf organize-1
+        mv organize-move organize-1
+
         # ensure `organize --hardlink` works
         begin "organize --hardlink sanity"
         ok_no_stderr organize-2 self organize --quiet --hardlink --to organize-2 organize-1
