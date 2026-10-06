@@ -3378,15 +3378,16 @@ if other parts of the date are not specified, they get substituted from `<year>-
     def add_filter_options(cmd: _t.Any) -> None:
         agrp = cmd.add_argument_group("filtering options")
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--ignore-case", dest="ignore_case", action="store_const", const=True,
+        grp.add_argument("--ignore-case", dest="ignore_case", action="store_true",
             help=_("when filtering with `--*grep*`, match case-insensitively"),
         )
-        grp.add_argument("--case-sensitive", dest="ignore_case", action="store_const", const=False,
+        grp.add_argument("--case-sensitive", dest="ignore_case", action="store_false",
             help=_("when filtering with `--*grep*`, match case-sensitively"),
         )
         grp.add_argument("--smart-case", dest="ignore_case", action="store_const", const=None,
             help=_("when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default"),
         )
+        cmd.set_defaults(ignore_case=None)
 
     def add_filters(cmd: _t.Any, do_what: str, root: bool = False) -> None:
         if not root:
@@ -3607,10 +3608,10 @@ if other parts of the date are not specified, they get substituted from `<year>-
             assert False
 
         ddest = f"default_{kind}_filters"
-        agrp.add_argument(f"--{unwhat}-some-{inputs}", dest=ddest, action="store_const", const=True,
+        agrp.add_argument(f"--{unwhat}-some-{inputs}", dest=ddest, action="store_true",
             help=_(f"initialize {kind} filters to `%s`") % (def_def,) + def_note + _("; default"),
         )
-        agrp.add_argument(f"--{what}-all-{inputs}", dest=ddest, action="store_const", const=False,
+        agrp.add_argument(f"--{what}-all-{inputs}", dest=ddest, action="store_false",
             help=_(f"do not set any {kind} filters by default") + undef_note,
         )
         cmd.set_defaults(**{ddest: True})
@@ -3989,10 +3990,10 @@ Note however, that using fallbacks when the `--output` format depends on anythin
         agrp = cmd.add_argument_group("link conversions")
         grp = agrp.add_mutually_exclusive_group()
 
-        grp.add_argument("--relative", dest="absolute", action="store_const", const=False,
+        grp.add_argument("--relative", dest="absolute", action="store_false",
             help=_("when remapping URLs to local files, produce links and references with relative URLs (relative to the `--output` files under `OUTPUT_DESTINATION`); default when `--copy` or `--hardlink`"),
         )
-        grp.add_argument("--absolute", dest="absolute", action="store_const", const=True,
+        grp.add_argument("--absolute", dest="absolute", action="store_true",
             help=_("when remapping URLs to local files, produce links and references with absolute URLs; default when `--symlink`"),
         )
         cmd.set_defaults(absolute=None)
@@ -4148,10 +4149,10 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
         if kind == "serve":
             agrp = cmd.add_argument_group("file output options")
             grp = agrp.add_mutually_exclusive_group()
-            grp.add_argument("--compress", dest="compression", action="store_const", const=True,
+            grp.add_argument("--compress", dest="compression", action="store_true",
                 help="compress new archivals before dumping them to disk; default",
             )
-            grp.add_argument("--no-compress", "--uncompressed", dest="compression", action="store_const", const=False,
+            grp.add_argument("--no-compress", "--uncompressed", dest="compression", action="store_false",
                 help="dump new archivals to disk without compression",
             )
             cmd.set_defaults(compression=True)
@@ -4218,7 +4219,7 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
             return _(f"DANGEROUS! not recommended, {what} to a new `OUTPUT_DESTINATION` with the default `--no-overwrite` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this")
 
         if kind == "organize":
-            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_const", const=False,
+            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_false",
                 help=def_disallow
                 + ";\n"
                 + _("""`--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
@@ -4226,23 +4227,23 @@ when the operation's source is binary-eqivalent to the `--output` target, the op
 the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap files will still fail
 """),
             )
-            grp.add_argument("--latest", dest="allow_updates", action="store_const", const=True,
+            grp.add_argument("--latest", dest="allow_updates", action="store_true",
                 help=_("""replace files under `OUTPUT_DESTINATION` with their latest version;
 this is only allowed in combination with `--symlink` at the moment;
 for each source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
 """),
             )
         elif kind == "import":
-            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_const", const=False,
+            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_false",
                 help=def_disallow,
             )
-            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True,
+            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_true",
                 help=_("permit overwrites to files under `OUTPUT_DESTINATION`")
                 + ";\n"
                 + def_dangerous("importing"),
             )
         elif kind == "mirror":
-            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_const", const=False,
+            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_false",
                 help=def_disallow
                 + ";\n"
                 + _("""repeated `mirror`s of the same targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
@@ -4256,7 +4257,7 @@ using this together with `--depth` is likely to produce a partially broken resul
 on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
 """),
             )
-            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True,
+            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_true",
                 help=_("mirror all targets while permitting overwriting of old `--output` files under `OUTPUT_DESTINATION`")
                 + ";\n"
                 + def_dangerous("mirroring"),
@@ -4528,10 +4529,10 @@ The end.
     add_fileout(cmd, "serve")
 
     agrp = cmd.add_argument_group("when `--to` is set but parsing of an `HTTP`-submitted `WRR`-dump fails")
-    agrp.add_argument("--fallback", dest="fallback", action="store_const", const=True,
+    agrp.add_argument("--fallback", dest="fallback", action="store_true",
         help=_("... write the dump into a separate file with the name derived using `--fallback-*` options below, skip adding it to replay index, and report success to the submitter, similarly to how `hoardy-web-sas` does it") + _("; default"),
     )
-    agrp.add_argument("--no-fallback", dest="fallback", action="store_const", const=False,
+    agrp.add_argument("--no-fallback", dest="fallback", action="store_false",
         help=_(f"... don't write anything to disk, don't touch the index, return an `HTTP` error to the submitter; enabling this will prevent `HTTP` clients from submitting garbage to this archiving server instance, but it will also make it impossible to archive perfectly correct `WRR`-dumps in situations when `cbor2` library or `WRR` parsing code of `{__prog__}` itself fail to parse them properly (which does happen, rarely)"),
     )
     cmd.set_defaults(fallback=True)  # --fallback
@@ -4564,17 +4565,17 @@ thus, when setting this option to a custom value, you should probably only use t
     grp.add_argument("--all", dest="replay", action="store_const", const=None,
         help=_("... all available visits; if `--to` is set, each new archival will also be added to the index and made available for replay; default"),
     )
-    grp.add_argument("--no-replay", dest="replay", action="store_const", const=False,
+    grp.add_argument("--no-replay", dest="replay", action="store_false",
         help=_("disable replay functionality completely, making this instance into an archive-only server, like `hoardy-web-sas` is"),
     )
     cmd.set_defaults(replay=None)  # --all
 
     agrp = cmd.add_argument_group("replay how")
 
-    agrp.add_argument("--web", dest="web_replay", action="store_const", const=True,
+    agrp.add_argument("--web", dest="web_replay", action="store_true",
         help=_("replay `HTTP` responses as close as possible to their original captures; default"),
     )
-    agrp.add_argument("--mirror", dest="web_replay", action="store_const", const=False,
+    agrp.add_argument("--mirror", dest="web_replay", action="store_false",
         help=_(f"replay `HTTP` responses like `{__prog__} mirror` does; setting this option will disable replay of all `HTTP` headers except for `Location` and enable `inline_headers` option in `scrub` calls used in default `EXPR`s, similar to `{__prog__} mirror`; i.e., enabling this option will, essentially, turn this subcommand into an on-demand `{__prog__} mirror` which you can query with `curl` or some such"),
     )
     cmd.set_defaults(web_replay=True)
