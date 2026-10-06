@@ -2020,7 +2020,7 @@ def cmd_import_generic[Source: DeferredSource](
     emit: EmitFunc[ReqresExpr[Source]]
     emit, finish = make_deferred_emit(
         cargs,
-        cargs.destination,
+        _op.expanduser(cargs.destination),
         output_format,
         "importing",
         DeferredFileWrite,
