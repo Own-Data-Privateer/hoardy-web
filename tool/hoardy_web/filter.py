@@ -36,7 +36,7 @@ ConditionsValueType = _t.TypeVar("ConditionsValueType")
 Conditions = dict[ConditionsKeyType, tuple[ConditionsValueType, ConditionUsage]]
 
 
-def mk_conditions(
+def make_conditions(
     fk: _t.Callable[[str], ConditionsKeyType],
     fv: _t.Callable[[str], ConditionsValueType],
     attrs: _t.Iterable[str],
@@ -108,7 +108,7 @@ FilterValueType = _t.TypeVar("FilterValueType")
 FilterType = tuple[int, _t.Callable[[FilterValueType], bool], _t.Callable[[], None]]
 
 
-def mk_simple_filter(
+def make_simple_filter(
     get_attr: _t.Callable[[FilterNameType], list[str]],
     get_optname: _t.Callable[[FilterNameType], str],
     name: FilterNameType,
@@ -116,7 +116,7 @@ def mk_simple_filter(
     fv: _t.Callable[[str], ConditionsValueType],
     matches: _t.Callable[[Conditions[str, ConditionsValueType], FilterValueType], bool],
 ) -> FilterType[FilterValueType]:
-    cmps = mk_conditions(str_id, fv, get_attr(name))
+    cmps = make_conditions(str_id, fv, get_attr(name))
     num = len(cmps)
 
     def allows(v: FilterValueType) -> bool:
@@ -155,7 +155,7 @@ OptionallyDeferredList = list[ConditionsValueType] | _t.Callable[[], list[Condit
 StrFilterInputType = tuple[list[str], OptionallyDeferredList[str]]
 
 
-def mk_str_filter(
+def make_str_filter(
     get_attr: _t.Callable[[FilterNameType], list[str]],
     get_optname: _t.Callable[[FilterNameType], str],
     name: FilterNameType,
@@ -167,9 +167,9 @@ def mk_str_filter(
     name_p = name + "_prefix"
     name_re = name + "_re"
 
-    exacts = mk_conditions(fk, str_id, get_attr(name))
-    prefixes = mk_conditions(str_id, fp, get_attr(name_p))
-    reres = mk_conditions(str_id, re_compile, get_attr(name_re))
+    exacts = make_conditions(fk, str_id, get_attr(name))
+    prefixes = make_conditions(str_id, fp, get_attr(name_p))
+    reres = make_conditions(str_id, re_compile, get_attr(name_re))
     num = len(exacts) + len(prefixes) + len(reres)
 
     def allows(v: FilterValueType) -> bool:
@@ -208,7 +208,7 @@ def pred_grep(_k: _t.Any, rere: PatternSB, vs: IterSB) -> bool:
     return False
 
 
-def mk_grep_filter(
+def make_grep_filter(
     get_attr: _t.Callable[[FilterNameType], list[str]],
     get_optname: _t.Callable[[FilterNameType], str],
     name: FilterNameType,
@@ -227,8 +227,8 @@ def mk_grep_filter(
 
     name_re = name + "_re"
 
-    pieces = mk_conditions(str_id, grep_str_compile, get_attr(name))
-    reres = mk_conditions(str_id, grep_re_compile, get_attr(name_re))
+    pieces = make_conditions(str_id, grep_str_compile, get_attr(name))
+    reres = make_conditions(str_id, grep_re_compile, get_attr(name_re))
     num = len(pieces) + len(reres)
 
     def allows(v: FilterValueType) -> bool:
@@ -256,7 +256,7 @@ def add_yn_filter(
     get_attr: _t.Callable[[FilterNameType], list[str]],
     get_optname: _t.Callable[[FilterNameType], str],
     name: FilterNameType,
-    mk_filter: _t.Callable[
+    make_filter: _t.Callable[
         _t.Concatenate[
             _t.Callable[[FilterNameType], list[str]],
             _t.Callable[[FilterNameType], str],
@@ -269,8 +269,8 @@ def add_yn_filter(
     *args: FilterParamSpec.args,
     **kwargs: FilterParamSpec.kwargs,
 ) -> None:
-    dest.append(mk_filter(get_attr, get_optname, name, True, *args, **kwargs))
-    dest.append(mk_filter(get_attr, get_optname, "not_" + name, False, *args, **kwargs))
+    dest.append(make_filter(get_attr, get_optname, name, True, *args, **kwargs))
+    dest.append(make_filter(get_attr, get_optname, "not_" + name, False, *args, **kwargs))
 
 
 def merge_non_empty_filters(

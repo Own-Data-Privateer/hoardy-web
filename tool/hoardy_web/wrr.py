@@ -1161,7 +1161,7 @@ def fallback_Reqres(
     return trivial_Reqres(url, ct, time, time, time, headers=headers, data=data)
 
 
-def mk_trivial_ReqresExpr(
+def trivial_ReqresExpr(
     url: str,
     ct: str = "text/html",
     sniff: bool = False,
@@ -1172,7 +1172,7 @@ def mk_trivial_ReqresExpr(
     return ReqresExpr(UnknownSource(), x)
 
 
-def mk_fallback_ReqresExpr(
+def fallback_ReqresExpr(
     url: str,
     cts: list[str] = ["text/html"],
     headers: Headers = [],
@@ -1188,17 +1188,17 @@ def test_ReqresExpr_url_parts() -> None:
         assert x[attr] == expected
 
     def check_fp(url: str, ext: str, *parts: str) -> None:
-        x = mk_trivial_ReqresExpr(url)
+        x = trivial_ReqresExpr(url)
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
     def check_fx(url: str, ct: str, sniff: bool, data: bytes, ext: str, *parts: str) -> None:
-        x = mk_trivial_ReqresExpr(url, ct, sniff, [], data)
+        x = trivial_ReqresExpr(url, ct, sniff, [], data)
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
     def check_ff(url: str, cts: list[str], data: bytes, ext: str, *parts: str) -> None:
-        x = mk_fallback_ReqresExpr(url, cts, [], data)
+        x = fallback_ReqresExpr(url, cts, [], data)
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
@@ -1231,14 +1231,14 @@ def test_ReqresExpr_url_parts() -> None:
     check_ff("https://example.org/test", ["text/css", "text/plain"], b"", ".css", "test", "index")
 
     url = "https://example.org//first/./skipped/../second/?query=this"
-    x = mk_trivial_ReqresExpr(url)
+    x = trivial_ReqresExpr(url)
     check(x, "net_url", url)
     check(x, "npath_parts", ["first", "second", ""])
     check(x, "filepath_parts", ["first", "second", "index"])
     check(x, "filepath_ext", ".htm")
     check(x, "query_parts", [("query", "this")])
 
-    x = mk_trivial_ReqresExpr("https://Königsgäßchen.example.org/испытание/../")
+    x = trivial_ReqresExpr("https://Königsgäßchen.example.org/испытание/../")
     check(x, "hostname", "königsgäßchen.example.org")
     check(
         x,
@@ -1251,7 +1251,7 @@ def test_ReqresExpr_url_parts() -> None:
     path_query = "/how%2Fdo%3Fyou%26like/these/components%E3%81%A7%E3%81%99%E3%81%8B%3F?empty&not=abit%3D%2F%3F%26weird"
     path_components = ["how/do?you&like", "these", "componentsですか?"]
     query_components = [("empty", None), ("not", "abit=/?&weird")]
-    x = mk_trivial_ReqresExpr(f"https://{hostname}{path_query}#hash")
+    x = trivial_ReqresExpr(f"https://{hostname}{path_query}#hash")
     check(x, "hostname", hostname)
     check(x, "net_hostname", ehostname)
     check(x, "npath_parts", path_components)
@@ -1262,12 +1262,12 @@ def test_ReqresExpr_url_parts() -> None:
     check(x, "net_url", f"https://{ehostname}{path_query}")
 
     url = "https://example.org/ABC==/XY/.jpg"
-    x = mk_trivial_ReqresExpr(url)
+    x = trivial_ReqresExpr(url)
     check(x, "net_url", url)
     check(x, "pretty_net_url", url)
 
     url = "https://example.org/index%23.txt"
-    x = mk_trivial_ReqresExpr(url)
+    x = trivial_ReqresExpr(url)
     check(x, "net_url", url)
     check(x, "pretty_net_url", url)
 

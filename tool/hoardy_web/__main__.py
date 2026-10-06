@@ -61,14 +61,16 @@ def pred_linst(expr: str, func: LinstFunc, rrexpr: ReqresExpr[_t.Any]) -> bool:
     ).elaborate("while processing `%s`", rrexpr.source.show_source())
 
 
-def mk_linst_filter(
+def make_linst_filter(
     get_attr: _t.Callable[[FilterNameType], list[str]],
     get_optname: _t.Callable[[FilterNameType], str],
     name: FilterNameType,
     yes: bool,
     matches: PredicateMatchesType[str, LinstFunc, ReqresExpr[_t.Any]],
 ) -> FilterType[ReqresExpr[_t.Any]]:
-    compiled = mk_conditions(str_id, lambda x: linst_compile(x, linst_atom_or_env), get_attr(name))
+    compiled = make_conditions(
+        str_id, lambda x: linst_compile(x, linst_atom_or_env), get_attr(name)
+    )
     num = len(compiled)
 
     def allows(v: ReqresExpr[_t.Any]) -> bool:
@@ -95,7 +97,7 @@ def compile_filters(cargs: _t.Any, attr_prefix: str = "") -> FilterType[ReqresEx
     def add_yn_timestamp_filter(
         name: str, pred: _t.Callable[[str, TimeStamp, ReqresExpr[_t.Any]], bool]
     ) -> None:
-        add_yn_filter(filters, get_attr, get_optname, name, mk_simple_filter, timestamp, lambda c, v: matches_all(pred, c, v))  # fmt: skip
+        add_yn_filter(filters, get_attr, get_optname, name, make_simple_filter, timestamp, lambda c, v: matches_all(pred, c, v))  # fmt: skip
 
     def is_before(_k: _t.Any, stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
         rrstime: TimeStamp = rrexpr.stime
@@ -117,7 +119,7 @@ def compile_filters(cargs: _t.Any, attr_prefix: str = "") -> FilterType[ReqresEx
             l = [value] if value is not None else []
             return l, l
 
-        add_yn_filter(filters, get_attr, get_optname, name, mk_str_filter, str_id, str_id, get_inputs)  # fmt: skip
+        add_yn_filter(filters, get_attr, get_optname, name, make_str_filter, str_id, str_id, get_inputs)  # fmt: skip
 
     add_yn_field_filter("protocol")
     add_yn_field_filter("request_method", "request.method")
@@ -132,7 +134,7 @@ def compile_filters(cargs: _t.Any, attr_prefix: str = "") -> FilterType[ReqresEx
             lnet_url = [net_url]
             return lnet_url, lambda: [net_url, rrexpr.pretty_net_url]
 
-        add_yn_filter(filters, get_attr, get_optname, name, mk_str_filter, neturlify, neturlify, get_inputs)  # fmt: skip
+        add_yn_filter(filters, get_attr, get_optname, name, make_str_filter, neturlify, neturlify, get_inputs)  # fmt: skip
 
     add_yn_url_filter("url")
 
@@ -145,7 +147,7 @@ def compile_filters(cargs: _t.Any, attr_prefix: str = "") -> FilterType[ReqresEx
                 return get_raw_headers_bytes(value)
             return []
 
-        add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)  # fmt: skip
+        add_yn_filter(filters, get_attr, get_optname, name, make_grep_filter, cargs.ignore_case, matches, get_inputs)  # fmt: skip
 
     def add_yn_field_grep_filter(
         name: str, field: str, matches: PredicateMatchesType[str, PatternSB, IterSB]
@@ -155,7 +157,7 @@ def compile_filters(cargs: _t.Any, attr_prefix: str = "") -> FilterType[ReqresEx
             l = [value] if value is not None else []
             return l
 
-        add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)  # fmt: skip
+        add_yn_filter(filters, get_attr, get_optname, name, make_grep_filter, cargs.ignore_case, matches, get_inputs)  # fmt: skip
 
     def add_rr(side: str) -> None:
         add_yn_headers_grep_filter(f"{side}_headers_or_grep", f"{side}.headers", matches_any)
@@ -180,13 +182,13 @@ def compile_filters(cargs: _t.Any, attr_prefix: str = "") -> FilterType[ReqresEx
                 res.append(reqres.response.body)
             return res
 
-        add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)  # fmt: skip
+        add_yn_filter(filters, get_attr, get_optname, name, make_grep_filter, cargs.ignore_case, matches, get_inputs)  # fmt: skip
 
     add_yn_grep_filter("or_grep", matches_any)
     add_yn_grep_filter("and_grep", matches_all)
 
-    filters.append(mk_linst_filter(get_attr, get_optname, "and", True, matches_all))
-    filters.append(mk_linst_filter(get_attr, get_optname, "or", False, matches_any))
+    filters.append(make_linst_filter(get_attr, get_optname, "and", True, matches_all))
+    filters.append(make_linst_filter(get_attr, get_optname, "or", False, matches_any))
 
     return merge_non_empty_filters(filters)
 
@@ -234,7 +236,7 @@ type LoadFFunc[LoadPath, LoadResult] = _t.Callable[[LoadPath], LoadResult]
 type EmitFunc[LoadResult] = _t.Callable[[LoadResult], None]
 
 
-def load_map_orderly[AnyStr: (
+def load_and_emit[AnyStr: (
     str,
     bytes,
 ), Result](
@@ -293,7 +295,7 @@ def load_map_orderly[AnyStr: (
             raise exc
 
 
-def map_wrr_paths[AnyStr: (
+def load_and_emit_many[AnyStr: (
     str,
     bytes,
 )](
@@ -314,7 +316,7 @@ def map_wrr_paths[AnyStr: (
             emit_func(rrexpr)
 
     for exp_path in paths:
-        load_map_orderly(
+        load_and_emit(
             loadf_func, emit_many, exp_path, order=cargs.walk_fs, errors=cargs.errors, **kwargs
         )
 
@@ -376,7 +378,7 @@ def dispatch_rrexprs_load[AnyStr: (
     return rrexprs_load
 
 
-def mk_rrexprs_load[AnyStr: (
+def make_rrexprs_load[AnyStr: (
     str,
     bytes,
 )](cargs: _t.Any) -> LoadFFunc[AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
@@ -413,7 +415,7 @@ def cmd_pprint(cargs: _t.Any) -> None:
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
     handle_paths(cargs)
-    map_wrr_paths(cargs, mk_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
+    load_and_emit_many(cargs, make_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
     filters_warn()
 
 
@@ -542,7 +544,7 @@ def cmd_stream(cargs: _t.Any) -> None:
     handle_paths(cargs)
     stream.start()
     try:
-        map_wrr_paths(cargs, mk_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
+        load_and_emit_many(cargs, make_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
     finally:
         stream.finish()
 
@@ -558,7 +560,7 @@ def cmd_find(cargs: _t.Any) -> None:
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
     handle_paths(cargs)
-    map_wrr_paths(cargs, mk_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
+    load_and_emit_many(cargs, make_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
 
     filters_warn()
 
@@ -1634,7 +1636,7 @@ def make_deferred_emit[Source: DeferredSource, AnyStr: (
                 if cargs.errors != "fail":
                     _logging.error("%s", exc.get_message(gettext))
                     return
-                # raise CatastrophicFailure so that load_map_orderly wouldn't try handling it
+                # raise CatastrophicFailure so that `load_and_emit` wouldn't try handling it
                 raise CatastrophicFailure(exc) from exc
 
             if done_files is not None:
@@ -1972,7 +1974,7 @@ def cmd_organize(cargs: _t.Any) -> None:
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
-    rrexprs_load = mk_rrexprs_load(cargs)
+    rrexprs_load = make_rrexprs_load(cargs)
     handle_paths(cargs)
     emit: EmitFunc[ReqresExpr[FileSource]]
     if cargs.destination is not None:
@@ -1981,7 +1983,7 @@ def cmd_organize(cargs: _t.Any) -> None:
             cargs, _op.expanduser(cargs.destination), output_format, cargs.allow_updates
         )
         try:
-            map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, cargs.paths)
+            load_and_emit_many(cargs, rrexprs_load, filters_allow, emit, cargs.paths)
         finally:
             finish()
     else:
@@ -2001,7 +2003,7 @@ def cmd_organize(cargs: _t.Any) -> None:
         for exp_path in cargs.paths:
             emit, finish = make_organize_emit(cargs, exp_path, output_format, False)
             try:
-                map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, [exp_path])
+                load_and_emit_many(cargs, rrexprs_load, filters_allow, emit, [exp_path])
             finally:
                 finish()
 
@@ -2027,7 +2029,7 @@ def cmd_import_generic[Source: DeferredSource](
         cargs.allow_updates,
     )
     try:
-        map_wrr_paths(cargs, rrexprs_loadf, filters_allow, emit, cargs.paths)
+        load_and_emit_many(cargs, rrexprs_loadf, filters_allow, emit, cargs.paths)
     finally:
         finish()
 
@@ -2142,7 +2144,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
     _root_filters_num, root_filters_allow, root_filters_warn = compile_filters(cargs, "root_")
 
     max_depth: int = cargs.depth
-    max_memory_mib = cargs.max_memory * 1024 * 1024
+    max_memory = cargs.memory * 1024 * 1024
 
     index: SortedReqresIndex = SortedDictIndex(
         key_key=identity, value_key=fst, ideal=nearest if singletons else None
@@ -2224,7 +2226,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                 queue[pid] = indexed
                 report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1)  # fmt: skip
 
-            if unqueued or mem.consumption > max_memory_mib:
+            if unqueued or mem.consumption > max_memory:
                 rrexpr.unload()
 
         return emit
@@ -2232,12 +2234,12 @@ def cmd_mirror(cargs: _t.Any) -> None:
     handle_paths(cargs)
     elaborate_paths(cargs.boring)
 
-    rrexprs_load = mk_rrexprs_load(cargs)
+    rrexprs_load = make_rrexprs_load(cargs)
     seen_paths: set[PathType] = set()
-    map_wrr_paths(
+    load_and_emit_many(
         cargs, rrexprs_load, filters_allow, collect(True), cargs.paths, seen_paths=seen_paths
     )
-    map_wrr_paths(
+    load_and_emit_many(
         cargs, rrexprs_load, filters_allow, collect(False), cargs.boring, seen_paths=seen_paths
     )
 
@@ -2407,13 +2409,13 @@ def cmd_mirror(cargs: _t.Any) -> None:
                     ):
                         # nothing to do
                         urel_out_path = get_rel_out_path(urrexpr_id, urrexpr)
-                        if mem.consumption > max_memory_mib:
+                        if mem.consumption > max_memory:
                             urrexpr.unload()
                     elif enqueue:
                         urel_out_path = get_rel_out_path(urrexpr_id, urrexpr)
                         new_queue[upage_id] = uobj
                         report_queued(ustime, unet_url, upurl.pretty_net_url, urrexpr.source, level + 1)  # fmt: skip
-                        if mem.consumption > max_memory_mib:
+                        if mem.consumption > max_memory:
                             rrexpr.unload()
                     else:
                         # this will not be mirrored
@@ -2673,13 +2675,15 @@ def cmd_serve(cargs: _t.Any) -> None:
 
         handle_paths(cargs)
 
-        rrexprs_load = mk_rrexprs_load(cargs)
+        rrexprs_load = make_rrexprs_load(cargs)
         seen_paths: set[PathType] = set()
         if destination is not None and cargs.implicit and _op.exists(destination):
-            map_wrr_paths(
+            load_and_emit_many(
                 cargs, rrexprs_load, filters_allow, emit, [destination], seen_paths=seen_paths
             )
-        map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, cargs.paths, seen_paths=seen_paths)
+        load_and_emit_many(
+            cargs, rrexprs_load, filters_allow, emit, cargs.paths, seen_paths=seen_paths
+        )
     elif cargs.implicit:
         raise CatastrophicFailure("`--no-replay`: not allowed with `--implicit`")
     elif len(cargs.paths) > 0:
