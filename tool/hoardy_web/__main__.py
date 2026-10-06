@@ -3818,7 +3818,7 @@ if other parts of the date are not specified, they get substituted from `<year>-
             parser: _t.Any,
             cfg: argparse.Namespace,
             value: _t.Any,
-            option_string: _t.Optional[str] = None,
+            option_string: str | None = None,
         ) -> None:
             cfg.exprs.append(compile_expr(value))
 
@@ -3830,7 +3830,7 @@ if other parts of the date are not specified, they get substituted from `<year>-
             parser: _t.Any,
             cfg: argparse.Namespace,
             value: _t.Any,
-            option_string: _t.Optional[str] = None,
+            option_string: str | None = None,
         ) -> None:
             fileno = cfg.expr_fd
             try:
@@ -4388,7 +4388,7 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
             parser: _t.Any,
             cfg: argparse.Namespace,
             value: _t.Any,
-            option_string: _t.Optional[str] = None,
+            option_string: str | None = None,
         ) -> None:
             setattr(cfg, self.dest, self.const(timerange(value).middle))
 

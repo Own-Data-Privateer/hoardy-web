@@ -134,10 +134,10 @@ class Reqres:
     agent: str
     protocol: str
     request: Request
-    response: _t.Optional[Response]
+    response: Response | None
     finished_at: TimeStamp
     extra: dict[str, _t.Any]
-    websocket: _t.Optional[list[WebSocketFrame]]
+    websocket: list[WebSocketFrame] | None
     _approx_size: int = 0
 
     def _resize(self) -> int:
