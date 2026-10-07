@@ -232,6 +232,28 @@ def handle_paths(cargs: _t.Any) -> None:
         cargs.paths.sort(reverse=cargs.walk_paths == WalkOrder.REVERSE)
 
 
+def handle_ENAMETOOLONG(exc: OSError, name: str | bytes) -> None:
+    if exc.errno == _errno.ENAMETOOLONG:
+        raise Failure(
+            "target file system rejects `%s` as too long: either one of the path components is longer than the maximum allowed file name on the target file system or the whole thing is longer than kernel MAX_PATH",
+            fsdecode(name),
+        ) from exc
+
+
+def select_on_error(how: str) -> _t.Callable[[Failure], None]:
+    if how == "ignore":
+        return noop
+    if how == "skip":
+        return log_exception_error
+    if how == "fail":
+
+        def reraise(exc: Failure, *args: _t.Any, **kwargs: _t.Any) -> None:
+            raise CatastrophicFailure(exc) from exc
+
+        return reraise
+    assert False
+
+
 type LoadFFunc[LoadPath, LoadResult] = _t.Callable[[LoadPath], LoadResult]
 type EmitFunc[LoadResult] = _t.Callable[[LoadResult], None]
 
@@ -249,6 +271,8 @@ def load_and_emit[AnyStr: (
     order: WalkOrder = WalkOrder.REVERSE,
     errors: str = "fail",
 ) -> None:
+    on_error = select_on_error(errors)
+
     if seen_paths is not None:
         abs_dir_or_file_path = _op.abspath(dir_or_file_path)
         if abs_dir_or_file_path in seen_paths:
@@ -282,17 +306,11 @@ def load_and_emit[AnyStr: (
             try:
                 data = load_func(abs_path)
             except OSError as exc:
-                raise Failure("failed to open `%s`", path) from exc
+                raise Failure("failed to open `%s`", fsdecode(path)) from exc
 
             emit_func(data)
         except Failure as exc:
-            if errors == "ignore":
-                continue
-            exc.elaborate("while processing `%s`", path)
-            if errors != "fail":
-                _logging.error("%s", exc.get_message(gettext))
-                continue
-            raise exc
+            on_error(exc.elaborate("while processing `%s`", fsdecode(path)))
 
 
 def load_and_emit_many[AnyStr: (
@@ -1515,14 +1533,6 @@ class DeferredOperation[Source: DeferredSource, AnyStr: (str, bytes)]:
         raise NotImplementedError()
 
 
-def handle_ENAMETOOLONG(exc: OSError, name: str | bytes) -> None:
-    if exc.errno == _errno.ENAMETOOLONG:
-        raise Failure(
-            "target file system rejects `%s` as too long: either one of the path components is longer than the maximum allowed file name on the target file system or the whole thing is longer than kernel MAX_PATH",
-            name,
-        ) from exc
-
-
 class DeferredFileWrite[Source: DeferredSource, AnyStr: (str, bytes)](
     DeferredOperation[Source, AnyStr]
 ):
@@ -1553,6 +1563,8 @@ def make_deferred_emit[Source: DeferredSource, AnyStr: (
     moving: bool = False,
     symlinking: bool = False,
 ) -> tuple[_t.Callable[[ReqresExpr[Source]], None], _t.Callable[[], None]]:
+    on_error = select_on_error(cargs.errors)
+
     terminator: bytes | None = cargs.terminator if cargs.dry_run is not None else None
 
     # for each `--output` value, how many times it was seen
@@ -1626,18 +1638,14 @@ def make_deferred_emit[Source: DeferredSource, AnyStr: (
                 if not cargs.dry_run:
                     intent.run(sync)
             except Failure as exc:
-                if cargs.errors == "ignore":
-                    return
-                exc.elaborate(
-                    f"while {actioning} `%s` -> `%s`",
-                    rrexpr.show_source(),
-                    fsdecode(abs_out_path),
+                on_error(
+                    exc.elaborate(
+                        f"while {actioning} `%s` -> `%s`",
+                        rrexpr.show_source(),
+                        fsdecode(abs_out_path),
+                    )
                 )
-                if cargs.errors != "fail":
-                    _logging.error("%s", exc.get_message(gettext))
-                    return
-                # raise CatastrophicFailure so that `load_and_emit` wouldn't try handling it
-                raise CatastrophicFailure(exc) from exc
+                return
 
             if done_files is not None:
                 done_files.append(abs_out_path)
@@ -2068,6 +2076,8 @@ def normal_document(indexed: IndexedReqres) -> bool:
 
 
 def cmd_mirror(cargs: _t.Any) -> None:
+    on_error = select_on_error(cargs.errors)
+
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr("mirror", cargs.default_expr))]
 
@@ -2512,17 +2522,12 @@ def cmd_mirror(cargs: _t.Any) -> None:
                     raise Failure(f"can't {action} across file systems") from exc
                 raise
         except Failure as exc:
-            if cargs.errors == "ignore":
-                return rel_out_path
-            exc.elaborate("while processing `%s`", source.show_source())
-            if cargs.errors != "fail":
-                _logging.error("%s", exc.get_message(gettext))
-                return rel_out_path
-            # raise CatastrophicFailure instead
-            raise CatastrophicFailure(exc) from exc
-        except Exception:
-            error("while processing `%s`", source.show_source())
-            raise
+            on_error(exc.elaborate("while processing `%s`", source.show_source()))
+            return rel_out_path
+        except Exception as exc:
+            raise CatastrophicFailure("%s", str(exc)).elaborate(
+                "while processing `%s`", source.show_source()
+            ) from exc
 
     while len(queue) > 0:
         raise_first_delayed_signal()
