@@ -138,7 +138,8 @@ class Reqres:
     finished_at: TimeStamp
     extra: dict[str, _t.Any]
     websocket: list[WebSocketFrame] | None
-    _approx_size: int = 0
+
+    _approx_size: int = _dc.field(default=0, compare=False)
 
     def _resize(self) -> int:
         self._approx_size = res = (
@@ -876,8 +877,8 @@ class ReqresExpr[Source: DeferredSource](DeferredSource, LinstEvaluator):
     sniff: SniffContentType = _dc.field(default=SniffContentType.NONE)
     remap_url: URLRemapperType | None = _dc.field(default=None)
 
-    _original: _t.Any | None = _dc.field(default=None)
-    _approx_size: int = _dc.field(default=0)
+    _original: _t.Any | None = _dc.field(default=None, compare=False)
+    _approx_size: int = _dc.field(default=0, compare=False)
 
     def __post_init__(self) -> None:
         LinstEvaluator.__init__(self, ReqresExpr_lookup)
