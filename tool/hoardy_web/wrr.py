@@ -142,6 +142,7 @@ class Reqres:
     _approx_size: int = _dc.field(default=0, compare=False)
 
     def _resize(self) -> int:
+        old = self._approx_size
         self._approx_size = res = (
             128
             + self.request.approx_size()
@@ -152,7 +153,7 @@ class Reqres:
                 else 0
             )
         )
-        return res
+        return res - old
 
     def approx_size(self) -> int:
         if self._approx_size == 0:
@@ -888,17 +889,14 @@ class ReqresExpr[Source: DeferredSource](DeferredSource, LinstEvaluator):
         mem.consumption -= self._approx_size
 
     def _resize(self) -> int:
+        old = self._approx_size
         self._approx_size = res = (
             128
+            + (self._reqres.approx_size() if self._reqres is not None else 0)
             + (self.source.approx_size() if self.source is not None else 0)
-            + (
-                self._reqres._resize()  # pylint: disable=protected-access
-                if self._reqres is not None
-                else 0
-            )
             + sum(map(lambda k: len(k) + 16, self.values.keys()))
         )
-        return res
+        return res - old
 
     def approx_size(self) -> int:
         return self._approx_size
@@ -917,7 +915,7 @@ class ReqresExpr[Source: DeferredSource](DeferredSource, LinstEvaluator):
             raise NotImplementedError()
 
         self._reqres = reqres
-        mem.consumption -= self._approx_size - self._resize()
+        mem.consumption += self._resize()
         return reqres
 
     def unload(self, completely: bool = True) -> None:
@@ -926,7 +924,7 @@ class ReqresExpr[Source: DeferredSource](DeferredSource, LinstEvaluator):
             self._reqres = None
         if completely:
             self.values = {}
-        mem.consumption -= self._approx_size - self._resize()
+        mem.consumption += self._resize()
 
     def show_source(self) -> str:
         return self.source.show_source()
