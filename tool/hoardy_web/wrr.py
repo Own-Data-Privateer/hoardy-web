@@ -55,7 +55,7 @@ class RRCommon(metaclass=_abc.ABCMeta):
         raise NotImplementedError()
 
     def discern_content_type(self, sniff: SniffContentType) -> DiscernContentType:
-        """Run `mime.discern_content_type` on this."""
+        """Run `mime.discern_content_type` over `self`."""
         try:
             return self._dtc[sniff]
         except KeyError:
@@ -66,9 +66,7 @@ class RRCommon(metaclass=_abc.ABCMeta):
         ct, do_sniff = self.get_content_type()
         if do_sniff and sniff == SniffContentType.NONE:
             sniff = SniffContentType.FORCE
-        res = discern_content_type(ct, sniff, self.body)
-
-        self._dtc[sniff] = res
+        self._dtc[sniff] = res = discern_content_type(ct, sniff, self.body)
         return res
 
 
@@ -110,10 +108,7 @@ class Response(RRCommon):
     def get_content_type(self) -> tuple[str, bool]:
         ct = get_header_value(self.headers, "content-type", "application/octet-stream")
         ct_opts = get_header_value(self.headers, "x-content-type-options", "")
-        if ct_opts in ("nosniff", "no-sniff"):
-            sniff = False
-        else:
-            sniff = True
+        sniff = ct_opts not in ("nosniff", "no-sniff")
         return ct, sniff
 
 
@@ -872,13 +867,10 @@ ReqresExpr_time_attrs = frozenset(
 @_dc.dataclass
 class ReqresExpr[Source: DeferredSource](DeferredSource, LinstEvaluator):
     source: Source
-
     _reqres: Reqres | None
-
     sniff: SniffContentType = _dc.field(default=SniffContentType.NONE)
     remap_url: URLRemapperType | None = _dc.field(default=None)
 
-    _original: _t.Any | None = _dc.field(default=None, compare=False)
     _approx_size: int = _dc.field(default=0, compare=False)
 
     def __post_init__(self) -> None:
