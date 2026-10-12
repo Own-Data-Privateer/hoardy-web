@@ -44,6 +44,91 @@ from .linst import *
 from .web import *
 
 
+class WRRParsingFailure(ParsingFailure):
+    pass
+
+
+class WRRTypeFailure(WRRParsingFailure):
+    pass
+
+
+def _t_bool(n: str, x: _t.Any) -> bool:
+    if isinstance(x, bool):
+        return x
+    raise WRRTypeFailure(
+        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
+        n,
+        "bool",
+        type(x).__name__,
+    )
+
+
+def _t_bytes(n: str, x: _t.Any) -> bytes:
+    if isinstance(x, bytes):
+        return x
+    raise WRRTypeFailure(
+        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
+        n,
+        "bytes",
+        type(x).__name__,
+    )
+
+
+def _t_str(n: str, x: _t.Any) -> str:
+    if isinstance(x, str):
+        return x
+    raise WRRTypeFailure(
+        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
+        n,
+        "str",
+        type(x).__name__,
+    )
+
+
+def _t_bytes_or_str(n: str, x: _t.Any) -> bytes | str:
+    if isinstance(x, bytes):
+        return x
+    if isinstance(x, str):
+        return x
+    raise WRRTypeFailure(
+        "while parsing Reqres field `%s`: wrong type: expected `%s` or `%s`, got `%s`",
+        n,
+        "bytes",
+        "str",
+        type(x).__name__,
+    )
+
+
+def _t_int(n: str, x: _t.Any) -> int:
+    if isinstance(x, int):
+        return x
+    raise WRRTypeFailure(
+        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
+        n,
+        "int",
+        type(x).__name__,
+    )
+
+
+def _t_timestamp(n: str, x: _t.Any) -> TimeStamp:
+    return TimeStamp(Decimal(_t_int(n, x)) / 1000)
+
+
+def _f_timestamp(x: TimeStamp) -> int:
+    return int(x * 1000)
+
+
+def _t_headers(n: str, x: _t.Any) -> Headers:
+    if Headers.__instancecheck__(x):
+        return _t.cast(Headers, x)
+    raise WRRTypeFailure(
+        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
+        n,
+        "Headers",
+        type(x).__name__,
+    )
+
+
 class RRCommon(metaclass=_abc.ABCMeta):
     headers: Headers
     complete: bool
@@ -154,6 +239,171 @@ class Reqres:
         if self._approx_size == 0:
             return self._resize()
         return self._approx_size
+
+    @staticmethod
+    def from_struct(data: _t.Any) -> "Reqres":
+        if not isinstance(data, list):
+            raise WRRParsingFailure("Reqres parsing failure: wrong spine")
+
+        if len(data) == 7 and data[0] == "WEBREQRES/1":
+            _, agent, protocol, request_, response_, finished_at, extra = data
+            rq_started_at, rq_method, rq_url, rq_headers, rq_complete, rq_body = request_
+            purl = parse_url(_t_str("request.url", rq_url))
+            if purl.scheme not in Reqres_url_schemes:
+                raise WRRParsingFailure(
+                    "Reqres field `request.url`: unsupported URL scheme `%s`", purl.scheme
+                )
+            request = Request(
+                _t_timestamp("request.started_at", rq_started_at),
+                _t_str("request.method", rq_method),
+                purl,
+                _t_headers("request.headers", rq_headers),
+                _t_bool("request.complete", rq_complete),
+                _t_bytes_or_str("request.body", rq_body),
+            )
+            if response_ is None:
+                response = None
+            else:
+                rs_started_at, rs_code, rs_reason, rs_headers, rs_complete, rs_body = response_
+                response = Response(
+                    _t_timestamp("response.started_at", rs_started_at),
+                    _t_int("response.code", rs_code),
+                    _t_str("responese.reason", rs_reason),
+                    _t_headers("responese.headers", rs_headers),
+                    _t_bool("response.complete", rs_complete),
+                    _t_bytes_or_str("responese.body", rs_body),
+                )
+
+            try:
+                wsframes = extra["websocket"]
+            except KeyError:
+                websocket = None
+            else:
+                del extra["websocket"]
+                websocket = []
+                for frame in wsframes:
+                    sent_at, from_client, opcode, content = frame
+                    websocket.append(
+                        WebSocketFrame(
+                            _t_timestamp("ws.sent_at", sent_at),
+                            _t_bool("ws.from_client", from_client),
+                            _t_int("ws.opcode", opcode),
+                            _t_bytes("ws.content", content),
+                        )
+                    )
+
+            reqres = Reqres(
+                1,
+                agent,
+                protocol,
+                request,
+                response,
+                _t_timestamp("finished_at", finished_at),
+                extra,
+                websocket,
+            )
+        else:
+            raise WRRParsingFailure("Reqres parsing failure: unknown format `%s`", data[0])
+
+        return reqres
+
+    def to_struct(self) -> _t.Any:
+        req = self.request
+        request = (
+            _f_timestamp(req.started_at),
+            req.method,
+            req.url.raw_url,
+            req.headers,
+            req.complete,
+            req.body,
+        )
+        del req
+
+        if self.response is None:
+            response = None
+        else:
+            res = self.response
+            response = (
+                _f_timestamp(res.started_at),
+                res.code,
+                res.reason,
+                res.headers,
+                res.complete,
+                res.body,
+            )
+            del res
+
+        extra = self.extra
+        if self.websocket is not None:
+            extra = extra.copy()
+            wsframes = []
+            for frame in self.websocket:
+                wsframes.append(
+                    [
+                        _f_timestamp(frame.sent_at),
+                        frame.from_client,
+                        frame.opcode,
+                        frame.content,
+                    ]
+                )
+            extra["websocket"] = wsframes
+
+        data = [
+            "WEBREQRES/1",
+            self.agent,
+            self.protocol,
+            request,
+            response,
+            _f_timestamp(self.finished_at),
+            extra,
+        ]
+        return data
+
+    @staticmethod
+    def from_cbor(fobj: _io.BufferedReader) -> "Reqres":
+        try:
+            struct = _cbor2.load(fobj)
+        except _cbor2.CBORDecodeValueError as exc:
+            raise WRRParsingFailure("CBOR parsing failure") from exc
+        return Reqres.from_struct(struct)
+
+
+def wrr_load(fobj: _io.BufferedReader) -> Reqres:
+    fobj = ungzip_fileobj_maybe(fobj)
+    if fobj.peek(1) == b"":
+        raise WRRParsingFailure("expected CBOR data, got EOF")
+
+    reqres = Reqres.from_cbor(fobj)
+    p = fobj.peek(1)
+    if p != b"":
+        # there's some junk after the end of the Reqres structure
+        raise WRRParsingFailure("expected EOF, got `%s`", p)
+    return reqres
+
+
+def wrr_bundle_load(fobj: _io.BufferedReader) -> _t.Iterator[Reqres]:
+    fobj = ungzip_fileobj_maybe(fobj)
+    while True:
+        if fobj.peek(1) == b"":
+            break
+        yield Reqres.from_cbor(fobj)
+
+
+def wrr_loadf(path: str | bytes) -> Reqres:
+    with open(path, "rb") as f:
+        return wrr_load(f)
+
+
+def wrr_dumps(reqres: Reqres, compress: bool = True) -> bytes:
+    structure = reqres.to_struct()
+    data = _cbor2.dumps(structure)
+    if compress:
+        data = gzip_maybe(data)
+    return data
+
+
+def wrr_dump(fobj: _io.BufferedWriter, reqres: Reqres, compress: bool = True) -> None:
+    fobj.write(wrr_dumps(reqres, compress))
 
 
 Reqres_fields = {
@@ -319,245 +569,6 @@ class StreamElementSource[Source: DeferredSource](DeferredSource):
         ):
             return False
         return True
-
-
-class WRRParsingFailure(ParsingFailure):
-    pass
-
-
-class WRRTypeFailure(WRRParsingFailure):
-    pass
-
-
-def _t_bool(n: str, x: _t.Any) -> bool:
-    if isinstance(x, bool):
-        return x
-    raise WRRTypeFailure(
-        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
-        n,
-        "bool",
-        type(x).__name__,
-    )
-
-
-def _t_bytes(n: str, x: _t.Any) -> bytes:
-    if isinstance(x, bytes):
-        return x
-    raise WRRTypeFailure(
-        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
-        n,
-        "bytes",
-        type(x).__name__,
-    )
-
-
-def _t_str(n: str, x: _t.Any) -> str:
-    if isinstance(x, str):
-        return x
-    raise WRRTypeFailure(
-        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
-        n,
-        "str",
-        type(x).__name__,
-    )
-
-
-def _t_bytes_or_str(n: str, x: _t.Any) -> bytes | str:
-    if isinstance(x, bytes):
-        return x
-    if isinstance(x, str):
-        return x
-    raise WRRTypeFailure(
-        "while parsing Reqres field `%s`: wrong type: expected `%s` or `%s`, got `%s`",
-        n,
-        "bytes",
-        "str",
-        type(x).__name__,
-    )
-
-
-def _t_int(n: str, x: _t.Any) -> int:
-    if isinstance(x, int):
-        return x
-    raise WRRTypeFailure(
-        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
-        n,
-        "int",
-        type(x).__name__,
-    )
-
-
-def _t_timestamp(n: str, x: _t.Any) -> TimeStamp:
-    return TimeStamp(Decimal(_t_int(n, x)) / 1000)
-
-
-def _f_timestamp(x: TimeStamp) -> int:
-    return int(x * 1000)
-
-
-def _t_headers(n: str, x: _t.Any) -> Headers:
-    if Headers.__instancecheck__(x):
-        return _t.cast(Headers, x)
-    raise WRRTypeFailure(
-        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
-        n,
-        "Headers",
-        type(x).__name__,
-    )
-
-
-def wrr_load_cbor_struct(data: _t.Any) -> Reqres:
-    if not isinstance(data, list):
-        raise WRRParsingFailure("Reqres parsing failure: wrong spine")
-    if len(data) == 7 and data[0] == "WEBREQRES/1":
-        _, agent, protocol, request_, response_, finished_at, extra = data
-        rq_started_at, rq_method, rq_url, rq_headers, rq_complete, rq_body = request_
-        purl = parse_url(_t_str("request.url", rq_url))
-        if purl.scheme not in Reqres_url_schemes:
-            raise WRRParsingFailure(
-                "Reqres field `request.url`: unsupported URL scheme `%s`", purl.scheme
-            )
-        request = Request(
-            _t_timestamp("request.started_at", rq_started_at),
-            _t_str("request.method", rq_method),
-            purl,
-            _t_headers("request.headers", rq_headers),
-            _t_bool("request.complete", rq_complete),
-            _t_bytes_or_str("request.body", rq_body),
-        )
-        if response_ is None:
-            response = None
-        else:
-            rs_started_at, rs_code, rs_reason, rs_headers, rs_complete, rs_body = response_
-            response = Response(
-                _t_timestamp("response.started_at", rs_started_at),
-                _t_int("response.code", rs_code),
-                _t_str("responese.reason", rs_reason),
-                _t_headers("responese.headers", rs_headers),
-                _t_bool("response.complete", rs_complete),
-                _t_bytes_or_str("responese.body", rs_body),
-            )
-
-        try:
-            wsframes = extra["websocket"]
-        except KeyError:
-            websocket = None
-        else:
-            del extra["websocket"]
-            websocket = []
-            for frame in wsframes:
-                sent_at, from_client, opcode, content = frame
-                websocket.append(
-                    WebSocketFrame(
-                        _t_timestamp("ws.sent_at", sent_at),
-                        _t_bool("ws.from_client", from_client),
-                        _t_int("ws.opcode", opcode),
-                        _t_bytes("ws.content", content),
-                    )
-                )
-
-        return Reqres(
-            1,
-            agent,
-            protocol,
-            request,
-            response,
-            _t_timestamp("finished_at", finished_at),
-            extra,
-            websocket,
-        )
-
-    raise WRRParsingFailure("Reqres parsing failure: unknown format `%s`", data[0])
-
-
-def wrr_load_cbor_fileobj(fobj: _io.BufferedReader) -> Reqres:
-    try:
-        struct = _cbor2.load(fobj)
-    except _cbor2.CBORDecodeValueError as exc:
-        raise WRRParsingFailure("CBOR parsing failure") from exc
-
-    return wrr_load_cbor_struct(struct)
-
-
-def wrr_load(fobj: _io.BufferedReader) -> Reqres:
-    fobj = ungzip_fileobj_maybe(fobj)
-    if fobj.peek(1) == b"":
-        raise WRRParsingFailure("expected CBOR data, got EOF")
-    reqres = wrr_load_cbor_fileobj(fobj)
-    p = fobj.peek(1)
-    if p != b"":
-        # there's some junk after the end of the Reqres structure
-        raise WRRParsingFailure("expected EOF, got `%s`", p)
-    return reqres
-
-
-def wrr_bundle_load(fobj: _io.BufferedReader) -> _t.Iterator[Reqres]:
-    fobj = ungzip_fileobj_maybe(fobj)
-    while True:
-        if fobj.peek(1) == b"":
-            break
-        yield wrr_load_cbor_fileobj(fobj)
-
-
-def wrr_loadf(path: str | bytes) -> Reqres:
-    with open(path, "rb") as f:
-        return wrr_load(f)
-
-
-def wrr_dumps(reqres: Reqres, compress: bool = True) -> bytes:
-    req = reqres.request
-    request = (
-        _f_timestamp(req.started_at),
-        req.method,
-        req.url.raw_url,
-        req.headers,
-        req.complete,
-        req.body,
-    )
-    del req
-
-    if reqres.response is None:
-        response = None
-    else:
-        res = reqres.response
-        response = (
-            _f_timestamp(res.started_at),
-            res.code,
-            res.reason,
-            res.headers,
-            res.complete,
-            res.body,
-        )
-        del res
-
-    extra = reqres.extra
-    if reqres.websocket is not None:
-        extra = extra.copy()
-        wsframes = []
-        for frame in reqres.websocket:
-            wsframes.append(
-                [_f_timestamp(frame.sent_at), frame.from_client, frame.opcode, frame.content]
-            )
-        extra["websocket"] = wsframes
-
-    structure = [
-        "WEBREQRES/1",
-        reqres.agent,
-        reqres.protocol,
-        request,
-        response,
-        _f_timestamp(reqres.finished_at),
-        extra,
-    ]
-
-    data = _cbor2.dumps(structure)
-    if compress:
-        data = gzip_maybe(data)
-    return data
-
-
-def wrr_dump(fobj: _io.BufferedWriter, reqres: Reqres, compress: bool = True) -> None:
-    fobj.write(wrr_dumps(reqres, compress))
 
 
 ReqresExpr_derived_attrs = {
@@ -1055,7 +1066,7 @@ def rrexprs_wrr_some_load(
     if fobj.peek(1) == b"":
         raise WRRParsingFailure("expected CBOR data, got EOF")
 
-    reqres = wrr_load_cbor_fileobj(fobj)
+    reqres = Reqres.from_cbor(fobj)
     if fobj.peek(1) == b"":
         yield ReqresExpr(source, reqres)
         return
@@ -1064,7 +1075,7 @@ def rrexprs_wrr_some_load(
 
     n = 1
     while True:
-        reqres = wrr_load_cbor_fileobj(fobj)
+        reqres = Reqres.from_cbor(fobj)
         yield ReqresExpr(StreamElementSource(source, n), reqres)
         n += 1
         if fobj.peek(1) == b"":

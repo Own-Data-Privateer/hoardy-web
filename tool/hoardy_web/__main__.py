@@ -2869,7 +2869,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         cborf.seek(0)
         try:
             try:
-                reqres = wrr_load_cbor_fileobj(cborf)
+                reqres = wrr_load(cborf)
             except Failure as exc:
                 raise exc.elaborate("failed to parse content body")
             except Exception as exc:
