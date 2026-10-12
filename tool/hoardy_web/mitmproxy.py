@@ -164,4 +164,4 @@ def rrexprs_mitmproxy_loadf(
 ) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
         in_stat = _os.fstat(f.fileno())
-        yield from rrexprs_mitmproxy_load_fileobj(f, make_FileSource(path, in_stat))
+        yield from rrexprs_mitmproxy_load_fileobj(f, FileSource(path, in_stat))

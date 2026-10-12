@@ -2925,7 +2925,7 @@ def cmd_serve(cargs: _t.Any) -> None:
             trrexpr.values["num"] += 1
 
         if this_replay:
-            rrexpr = ReqresExpr(make_FileSource(abs_out_path, _os.stat(abs_out_path)), reqres)
+            rrexpr = ReqresExpr(FileSource(abs_out_path, _os.stat(abs_out_path)), reqres)
             rrexpr.values = trrexpr.values
             if filters_allow(rrexpr):
                 emit(rrexpr)

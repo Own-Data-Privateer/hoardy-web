@@ -34,7 +34,7 @@ import cbor2 as _cbor2
 from kisstdlib.base import Decimal, getattr_rec
 from kisstdlib.compression import *
 from kisstdlib.failure import *
-from kisstdlib.fs import fsdecode
+from kisstdlib.fs import fsdecode, unchanged_stat
 from kisstdlib.io.base import BytesIOReader
 from kisstdlib.io.stdio import stdout as _stdout
 from kisstdlib.time import *
@@ -497,13 +497,10 @@ class BytesSource(DeferredSource):
 @_dc.dataclass
 class FileSource(DeferredSource):
     path: str | bytes
-    st_size: int
-    st_mtime_ns: int
-    st_dev: int
-    st_ino: int
+    stat: _os.stat_result
 
     def approx_size(self) -> int:
-        return 48 + len(self.path)
+        return 96 + len(self.path)
 
     def show_source(self) -> str:
         return fsdecode(self.path)
@@ -511,8 +508,7 @@ class FileSource(DeferredSource):
     def get_fileobj(self) -> _io.BufferedReader:
         fobj = open(self.path, "rb")  # pylint: disable=consider-using-with
         try:
-            in_stat = _os.fstat(fobj.fileno())
-            if self.st_size != in_stat.st_size or self.st_mtime_ns != in_stat.st_mtime_ns:
+            if not unchanged_stat(self.stat, _os.fstat(fobj.fileno())):
                 raise Failure("`%s` changed between accesses", self.path)
         except Exception:
             try:
@@ -523,18 +519,7 @@ class FileSource(DeferredSource):
         return fobj
 
     def same_as(self, other: DeferredSource) -> bool:
-        if (
-            isinstance(other, FileSource)
-            and self.st_size == other.st_size
-            and self.st_mtime_ns == other.st_mtime_ns
-            and (
-                self.st_ino != 0
-                and self.st_dev == other.st_dev
-                and self.st_ino == other.st_ino
-                or self.path == other.path
-            )
-        ):
-            # same size, mtime, inode/path
+        if isinstance(other, FileSource) and unchanged_stat(self.stat, other.stat):
             return True
         return False
 
@@ -542,10 +527,6 @@ class FileSource(DeferredSource):
         if isinstance(other, FileSource) and self.path == other.path:
             return False
         return True
-
-
-def make_FileSource(path: str | bytes, in_stat: _os.stat_result) -> FileSource:
-    return FileSource(path, in_stat.st_size, in_stat.st_mtime_ns, in_stat.st_dev, in_stat.st_ino)
 
 
 @_dc.dataclass
@@ -1085,7 +1066,7 @@ def rrexpr_wrr_loadf(
 ) -> ReqresExpr[FileSource]:
     with open(path, "rb") as f:
         in_stat = _os.fstat(f.fileno())
-        return rrexpr_wrr_load(f, make_FileSource(path, in_stat))
+        return rrexpr_wrr_load(f, FileSource(path, in_stat))
 
 
 def rrexprs_wrr_bundle_loadf(
@@ -1093,7 +1074,7 @@ def rrexprs_wrr_bundle_loadf(
 ) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
         in_stat = _os.fstat(f.fileno())
-        yield from rrexprs_wrr_bundle_load(f, make_FileSource(path, in_stat))
+        yield from rrexprs_wrr_bundle_load(f, FileSource(path, in_stat))
 
 
 def rrexprs_wrr_some_loadf(
@@ -1101,7 +1082,7 @@ def rrexprs_wrr_some_loadf(
 ) -> _t.Iterator[ReqresExpr[FileSource | StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
         in_stat = _os.fstat(f.fileno())
-        yield from rrexprs_wrr_some_load(f, make_FileSource(path, in_stat))
+        yield from rrexprs_wrr_some_load(f, FileSource(path, in_stat))
 
 
 def trivial_Reqres(
