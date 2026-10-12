@@ -450,9 +450,8 @@ class DeferredSource(metaclass=_abc.ABCMeta):
     def show_source(self) -> str:
         raise NotImplementedError()
 
-    @_abc.abstractmethod
     def get_fileobj(self) -> _io.BufferedReader:
-        raise NotImplementedError()
+        raise CatastrophicFailure("%s can't be re-read", self.__class__.__name__)
 
     def get_bytes(self) -> bytes:
         with self.get_fileobj() as f:
@@ -471,12 +470,6 @@ class UnknownSource(DeferredSource):
 
     def show_source(self) -> str:
         return f"<UnknownSource {id(self)}>"
-
-    def get_fileobj(self) -> _io.BufferedReader:
-        raise NotImplementedError()
-
-    def get_bytes(self) -> bytes:
-        raise NotImplementedError()
 
 
 @_dc.dataclass
@@ -565,12 +558,6 @@ class StreamElementSource[Source: DeferredSource](DeferredSource):
 
     def show_source(self) -> str:
         return self.stream_source.show_source() + "//" + str(self.num)
-
-    def get_fileobj(self) -> _io.BufferedReader:
-        raise NotImplementedError()
-
-    def get_bytes(self) -> bytes:
-        raise NotImplementedError()
 
     def replaces(self, other: DeferredSource) -> bool:
         if (
