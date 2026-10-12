@@ -219,6 +219,7 @@ class Reqres:
     extra: dict[str, _t.Any]
     websocket: list[WebSocketFrame] | None
 
+    _structure: _t.Any | None = _dc.field(default=None, compare=False)
     _approx_size: int = _dc.field(default=0, compare=False)
 
     def _resize(self) -> int:
@@ -240,8 +241,11 @@ class Reqres:
             return self._resize()
         return self._approx_size
 
+    def unload(self) -> None:
+        self._structure = None
+
     @staticmethod
-    def from_struct(data: _t.Any) -> "Reqres":
+    def from_struct(data: _t.Any, save: bool = True) -> "Reqres":
         if not isinstance(data, list):
             raise WRRParsingFailure("Reqres parsing failure: wrong spine")
 
@@ -305,9 +309,14 @@ class Reqres:
         else:
             raise WRRParsingFailure("Reqres parsing failure: unknown format `%s`", data[0])
 
+        if save:
+            reqres._structure = data  # pylint: disable=protected-access
         return reqres
 
-    def to_struct(self) -> _t.Any:
+    def to_struct(self, save: bool = False) -> _t.Any:
+        if self._structure is not None:
+            return self._structure
+
         req = self.request
         request = (
             _f_timestamp(req.started_at),
@@ -357,6 +366,8 @@ class Reqres:
             _f_timestamp(self.finished_at),
             extra,
         ]
+        if save:
+            self._structure = data
         return data
 
     @staticmethod
