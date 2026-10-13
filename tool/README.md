@@ -1557,7 +1557,7 @@ Algorithm:
 
 The end.
 
-Essentially, this is `{__prog__} get` into a temporary file for each given `PATH`, followed by spawning of `COMMAND`, followed by cleanup when it finishes.
+Essentially, this is `hoardy-web get` into a temporary file for each given `PATH`, followed by spawning of `COMMAND`, followed by cleanup when it finishes.
 
 - positional arguments:
   - `COMMAND`
@@ -1619,7 +1619,7 @@ Algorithm:
 
 The end.
 
-Esentially, this is a generalized `{__prog__} get`.
+Essentially, this is a generalized `hoardy-web get`.
 
 - options:
   - `-h, --help`
@@ -1881,7 +1881,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
 
 - file outputs:
   - `-t, --to, --organize-to OUTPUT_DESTINATION`
-  : destination directory; when unset each source `PATH` must be a directory which will be treated as its own `OUTPUT_DESTINATION`
+  : destination directory; when unset, each source `PATH` must be a directory which will be treated as its own `OUTPUT_DESTINATION`
   - `-o, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
@@ -3270,7 +3270,7 @@ The end.
   hoardy-web find --status-re .200C --response-mime text/html --and "response.body|len|> 1024" ../simple_server/pwebarc-dump
   ```
 
-- Rename all `WRR` files in `../simple_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `hoardy-web organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic):
+- Rename all `WRR` files in `../simple_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `hoardy-web organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making the `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic):
   ```
   hoardy-web organize ../simple_server/pwebarc-dump/default
   ```
