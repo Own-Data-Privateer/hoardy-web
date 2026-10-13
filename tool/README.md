@@ -1713,9 +1713,10 @@ Print paths of inputs matching specified criteria.
 Algorithm:
 
 - For each input `PATH`:
-  - load it;
-  - check this reqres satisfies given filters and skip it if it does not,
-  - print its path to stdout.
+  - load one or more reqres from it;
+  - for each reqres:
+    - if it does not satisfy given filters, skip it;
+    - print its path to stdout.
 
 The end.
 
@@ -1783,14 +1784,19 @@ Programmatically copy/rename/move/hardlink/symlink given input files based on th
 Algorithm:
 
 - For each input `PATH`:
-  - load it;
-  - check this reqres satisfies given filters and skip it if it does not,
-  - copy/rename/move/hardlink/symlink each file to `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
+  - load one or more reqres from it;
+  - for each reqres:
+    - if it does not satisfy given filters, skip it;
+    - compute a new destination path under `--to OUTPUT_DESTINATION` for this reqres (using its metadata and specified `--output OUTPUT_FORMAT` format);
+    - if the new destination path already contains this reqres, skip this reqres (thus, deduplicating the results);
+    - try to move/copy/hardlink/symlink that source file/reqres to that new path;
+    - if the previous step succeeded, continue to the next reqres;
+    - otherwise, increment the `num` substitution, compute new destination path, and try again.
 
 The end.
 
 Operations that could lead to accidental data loss are not permitted.
-E.g. `hoardy-web organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
+E.g., the default `hoardy-web organize --move` will not overwrite any files, which is why the default `--output` format contains the `num` substitution.
 
 - options:
   - `-h, --help`
@@ -2638,20 +2644,24 @@ Generate a local offline static website mirror from given intuts, producing resu
 
 Algorithm:
 
-- index all given inputs, for each input `PATH`:
-  - load it;
-  - check this reqres satisfies given filters and skip it if it does not,
-  - if there are no root filters set or if it satisfies given root filters, queue it for mirroring;
-  - either remember its location (or, for some types of files, its contents) for future use or forget about it (e.g., if running with `--latest` and this input is older than the already indexed one);
-- then, for each reqres in the queue, mirror it:
-  - evaluate all `EXPR` expressions on the reqres (which, by default, takes its response body and rewrites all links to point to locally mirrored files);
-  - if the document being mirrored has resource requisites, mirror them recursively,
-  - if the document being mirrored references other documents and the current depth is smaller than `DEPTH`, queue those documents for mirroring too,
-  - write the result of evaluating `EXPR`s into a separate file under `OUTPUT_DESTINATION` with its path derived from reqres' metadata.
+- for each input `PATH`:
+  - load one or more reqres from it;
+  - for each reqres:
+    - if it does not satisfy given filters, skip it;
+    - index it for future use;
+    - if running with `--latest` or similar, elide no longer relevant old inputs from the index;
+    - if there are no root filters set or if it satisfies given root filters, queue its URL for mirroring;
+- then, mirror each queued URL, that is, for each URL in the queue:
+  - load all indexed reqres;
+  - for each reqres:
+    - evaluate all `EXPR` expressions on that reqres (which, by default, takes its response body and rewrites all links to point to locally mirrored files);
+    - if the document being mirrored has resource requisites, mirror them recursively,
+    - if the document being mirrored references other documents and the current recursion depth is smaller than `DEPTH`, queue those documents for mirroring too,
+    - write the result of evaluating `EXPR`s into a separate file under `--to OUTPUT_DESTINATION` with its path derived from reqres' metadata and specified `--output OUTPUT_FORMAT` format.
 
 The end.
 
-Essentially, this is a combination of `hoardy-web organize --copy` followed by in-place `hoardy-web get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
+Essentially, this subcommand is a combination of `hoardy-web organize --copy` followed by in-place `hoardy-web get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
 
 - options:
   - `-h, --help`
@@ -3037,11 +3047,8 @@ Run an archiving server and/or serve given input files for replay over HTTP.
 
 Algorithm:
 
-- index all given inputs, for each input `PATH`:
-  - load it;
-  - check this reqres satisfies given filters and skip it if it does not,
-  - remember its location (or, for some types of files, its contents) for future use;
-- start listering on given host and port for:
+{indexing_algorithm}
+- start listening on given host and port for:
   - replay requests on `GET /web/<selector>/<url>`;
 - for each replay request:
   - if `selector` ends with `*`:
