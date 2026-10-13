@@ -450,6 +450,9 @@ class DeferredSource(metaclass=_abc.ABCMeta):
     def show_source(self) -> str:
         raise NotImplementedError()
 
+    def get_path(self) -> str | bytes | None:
+        return None
+
     def get_fileobj(self) -> _io.BufferedReader:
         raise CatastrophicFailure("%s can't be re-read", self.__class__.__name__)
 
@@ -505,6 +508,9 @@ class FileSource(DeferredSource):
     def show_source(self) -> str:
         return fsdecode(self.path)
 
+    def get_path(self) -> str | bytes:
+        return self.path
+
     def get_fileobj(self) -> _io.BufferedReader:
         fobj = open(self.path, "rb")  # pylint: disable=consider-using-with
         try:
@@ -539,6 +545,9 @@ class StreamElementSource[Source: DeferredSource](DeferredSource):
 
     def show_source(self) -> str:
         return self.stream_source.show_source() + "//" + str(self.num)
+
+    def get_path(self) -> str | bytes | None:
+        return self.stream_source.get_path()
 
     def replaces(self, other: DeferredSource) -> bool:
         if (
@@ -935,9 +944,7 @@ class ReqresExpr[Source: DeferredSource](DeferredSource, LinstEvaluator):
 
     def get_attr(self, name: str) -> _t.Any:
         if name == "fs_path":
-            if isinstance(self.source, FileSource):
-                return self.source.path
-            return None
+            return self.source.get_path()
 
         reqres = self.reqres
         if name == "method":
