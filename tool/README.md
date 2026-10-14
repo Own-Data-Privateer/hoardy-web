@@ -631,7 +631,7 @@ hoardy-web mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2023
 hoardy-web mirror --skip-existing --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2024
 
 # same, but updating old files
-hoardy-web mirror --overwrite-dangerously --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2024
+hoardy-web mirror --overwrite --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2024
 ```
 
 After the first of the above commands, links from pages generated from `WRR` files of `~/hoardy-web/raw/*/2023` to URLs contained in files from `~/hoardy-web/raw/*/2024` but not contained in files from `~/hoardy-web/raw/*/2023` will point to non-existent, yet unmirrored, files on disk.
@@ -2397,6 +2397,22 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
       - all expressions of `hoardy-web get --expr` (which see);
       - `num`: number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique
 
+- updates to `--output`s:
+  - `--skip-existing, --no-overwrite`
+  : skip overwrites of existing files under `OUTPUT_DESTINATION` while skipping duplicated inputs/outputs; default unless `--overwrite` is;
+    when running with `--symlink`, `--output` destinations that are broken symlinks will be considered to be non-existent and will processed as if `--overwrite` was set for those destination paths;
+    when an     `--output` destination file already contains a given source reqres, the resulting action will processed as if `--overwrite` was set for that destination path but the actual action itself will be elided into a noop, i.e., the results will be deduplicated;
+    in all o    ther cases, existing destination files will be skipped, the `num` substitution value will be incremented, a new `--output` file path will be generated, and the operation will be retried with that new path;
+    source a    nd destination file directories can be the same (set so explicitly or via unset `--to`), in which case each source file will simply be renamed to use its new `--output` name, though renames that attempt to swap files will fail
+  - `--overwrite`
+  : overwrite old files under `OUTPUT_DESTINATION`; default when running with `--symlink` combined with `--latest`
+  - `--latest`
+  : replace files under `OUTPUT_DESTINATION` with their latest version;
+    this is     only allowed in combination with `--symlink` at the moment;
+    for each     source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
+  - `--please-destroy-my-data`
+  : permit `--overwrite` usage even when it can loose your data; **DANGEROUS!**
+
 - new `--output`s printing:
   - `--no-print`
   : don't print anything; default
@@ -2404,17 +2420,6 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
   : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
   - `-z, --zero-terminated`
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
-
-- updates to `--output`s:
-  - `--no-overwrite`
-  : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default;
-    `--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
-    when the operation's source is binary-eqivalent to the `--output` target, the operation will be permitted, but the disk write will be reduced to a noop, i.e. the results will be deduplicated;
-    the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap files will still fail
-  - `--latest`
-  : replace files under `OUTPUT_DESTINATION` with their latest version;
-    this is only allowed in combination with `--symlink` at the moment;
-    for each source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
 
 ### hoardy-web import
 
@@ -2529,13 +2534,6 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   - `-z, --zero-terminated`
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
-- updates to `--output`s:
-  - `--no-overwrite`
-  : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default
-  - `--overwrite-dangerously`
-  : permit overwrites to files under `OUTPUT_DESTINATION`;
-    DANGEROUS! not recommended, importing to a new `OUTPUT_DESTINATION` with the default `--no-overwrite` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
-
 #### hoardy-web import mitmproxy
 
 Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
@@ -2630,13 +2628,6 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
   - `-z, --zero-terminated`
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
-
-- updates to `--output`s:
-  - `--no-overwrite`
-  : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default
-  - `--overwrite-dangerously`
-  : permit overwrites to files under `OUTPUT_DESTINATION`;
-    DANGEROUS! not recommended, importing to a new `OUTPUT_DESTINATION` with the default `--no-overwrite` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
 
 ### hoardy-web mirror
 
@@ -2807,6 +2798,17 @@ Essentially, this subcommand is a combination of `hoardy-web organize --copy` fo
   - `-o, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `hupq_n`
 
+- updates to `--output`s:
+  - `--skip-existing, --no-overwrite`
+  : skip overwrites of existing files under `OUTPUT_DESTINATION` while skipping duplicated inputs/outputs; default;
+    repeated `mirror`s of the same targets with the same parameters (which, therefore, will produce the same `--output` data) will still be allowed and elided into noops but trying to overwrite existing files under `OUTPUT_DESTINATION` with new data will produce errors;
+    this beh    aviour allows the same `OUTPUT_DESTINATION` to be reused between unrelated `mirror`s and between `mirror`s that produce the same data on disk in their common parts;
+    however,     note that such reuse combined with `--depth` is likely to produce partially broken results, since skipped rendering of a document will also skip rendering of it references
+  - `--overwrite`
+  : overwrite old files under `OUTPUT_DESTINATION`
+  - `--please-destroy-my-data`
+  : permit `--overwrite` usage even when it can loose your data; **DANGEROUS!**
+
 - new `--output`s printing:
   - `--no-print`
   : don't print anything; default
@@ -2814,20 +2816,6 @@ Essentially, this subcommand is a combination of `hoardy-web organize --copy` fo
   : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
   - `-z, --zero-terminated`
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
-
-- updates to `--output`s:
-  - `--no-overwrite`
-  : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default;
-    repeated `mirror`s of the same targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
-    however, trying to overwrite existing files under `OUTPUT_DESTINATION` with any new data will produce errors;
-    this allows reusing the `OUTPUT_DESTINATION` between unrelated `mirror`s and between `mirror`s that produce the same data on disk in their common parts
-  - `--skip-existing, --partial`
-  : skip rendering of targets which have a corresponding file under `OUTPUT_DESTINATION`, use the contents of such files instead;
-    using this together with `--depth` is likely to produce a partially broken result, since skipping of a document will also skip all of the things it references;
-    on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
-  - `--overwrite-dangerously`
-  : mirror all targets while permitting overwriting of old `--output` files under `OUTPUT_DESTINATION`;
-    DANGEROUS! not recommended, mirroring to a new `OUTPUT_DESTINATION` with the default `--no-overwrite` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
 
 - content-addressed file output mode:
   - `--copy`

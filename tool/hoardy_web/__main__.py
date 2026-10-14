@@ -1869,25 +1869,13 @@ def make_organize_emit[Source: DeferredSource, AnyStr: (
     symlinking = False
     check_data = True
     if action == "move":
-        if allow_updates:
-            raise Failure(
-                "`--move` and `--latest` are not allowed together, it will lose your data"
-            )
         actioning = "moving"
         action_op = move_file
         moving = True
     elif action == "copy":
-        if allow_updates:
-            raise Failure(
-                "`--copy` and `--latest` are not allowed together at the moment, it could lose your data"
-            )
         action_op = clone_file
         copying = True
     elif action == "hardlink":
-        if allow_updates:
-            raise Failure(
-                "`--hardlink` and `--latest` are not allowed together at the moment, it could lose your data"
-            )
         action_op = link_file
     elif action == "symlink":
         action_op = symlink_file
@@ -1974,10 +1962,20 @@ def make_organize_emit[Source: DeferredSource, AnyStr: (
 
 
 def cmd_organize(cargs: _t.Any) -> None:
-    if cargs.walk_paths == "unset":
-        cargs.walk_paths = WalkOrder.REVERSE if cargs.allow_updates else WalkOrder.NONE
-    if cargs.walk_fs == "unset":
-        cargs.walk_fs = WalkOrder.REVERSE if cargs.allow_updates else WalkOrder.SORT
+    allow_updates_is_safe = cargs.action == "symlink" and cargs.latest
+    allow_updates: bool | Missing = cargs.allow_updates
+    if isinstance(allow_updates, Missing):
+        allow_updates = allow_updates_is_safe
+
+    if allow_updates and not allow_updates_is_safe and not cargs.force:
+        raise Failure(
+            "this combination of options will loose and/or destroy some your data; run this command with `--please-destroy-my-data` option if you really want to do this"
+        )
+
+    if cargs.walk_paths is None:
+        cargs.walk_paths = WalkOrder.REVERSE if cargs.latest else WalkOrder.NONE
+    if cargs.walk_fs is None:
+        cargs.walk_fs = WalkOrder.REVERSE if cargs.latest else WalkOrder.SORT
 
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
     _num, filters_allow, filters_warn = compile_filters(cargs)
@@ -1994,10 +1992,9 @@ def cmd_organize(cargs: _t.Any) -> None:
             load_and_emit_many(cargs, rrexprs_load, filters_allow, emit, cargs.paths)
         finally:
             finish()
+    elif allow_updates:
+        raise Failure("`--to` is required when running with `--overwrite`")
     else:
-        if cargs.allow_updates:
-            raise Failure("`--latest` without `--to` is not allowed")
-
         # each path is its own destination
         for exp_path in cargs.paths:
             try:
@@ -2034,7 +2031,7 @@ def cmd_import_generic[Source: DeferredSource](
         output_format,
         "importing",
         DeferredFileWrite,
-        cargs.allow_updates,
+        False,
     )
     try:
         load_and_emit_many(cargs, rrexprs_loadf, filters_allow, emit, cargs.paths)
@@ -2094,9 +2091,9 @@ def cmd_mirror(cargs: _t.Any) -> None:
 
     action_op: _t.Any
     action = cargs.content_action
-    copying = False
+    copy = False
     if action == "copy":
-        copying = True
+        copy = True
     elif action == "hardlink":
         action_op = link_file
     elif action == "symlink":
@@ -2109,8 +2106,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
     else:
         relative = not cargs.absolute
 
-    allow_updates = cargs.allow_updates is True
-    skip_existing = cargs.allow_updates == "partial"
+    allow_updates: bool = cargs.allow_updates
 
     singletons: bool
     nearest: TimeStamp | None
@@ -2460,7 +2456,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
             old_data = read_file_maybe(rel_out_path)
 
             data: bytes
-            if skip_existing and old_data is not None:
+            if old_data is not None and not allow_updates:
                 data = old_data
 
                 if stdout.isatty():
@@ -2479,7 +2475,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                     data = f.fobj.getvalue()
 
             try:
-                if copying:
+                if copy:
                     real_out_path = rel_out_path
                     if old_data != data:
                         write_file(data, rel_out_path, allow_updates)
@@ -3708,13 +3704,13 @@ if other parts of the date are not specified, they get substituted from `<year>-
         add_termsep(cmd, "separ", *args, **kwargs)
 
     def add_paths(cmd: _t.Any, kind: str) -> None:
-        def_paths: WalkOrder | str
-        def_walk: WalkOrder | str
+        def_paths: WalkOrder | None
+        def_walk: WalkOrder | None
         if kind == "organize":
             def_def = "; " + _("default when `--no-overwrite`")
             def_sup = "; " + _("default when `--latest`")
-            def_paths = "unset"
-            def_walk = "unset"
+            def_paths = None
+            def_walk = None
         else:
             def_def = "; " + _("default")
             def_sup = ""
@@ -4215,65 +4211,56 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
         else:
             assert False
 
+        if kind in ("organize", "mirror"):
+            agrp = cmd.add_argument_group("updates to `--output`s")
+            grp = agrp.add_mutually_exclusive_group()
+
+            def_skip = _("skip overwrites of existing files under `OUTPUT_DESTINATION` while skipping duplicated inputs/outputs")
+
+            if kind == "organize":
+                grp.add_argument("--skip-existing", "--no-overwrite", dest="allow_updates", action="store_false",
+                    help=(
+                        def_skip
+                        + _("; default unless `--overwrite` is")
+                        + ";\n"
+                        + _("""when running with `--symlink`, `--output` destinations that are broken symlinks will be considered to be non-existent and will processed as if `--overwrite` was set for those destination paths;
+when an     `--output` destination file already contains a given source reqres, the resulting action will processed as if `--overwrite` was set for that destination path but the actual action itself will be elided into a noop, i.e., the results will be deduplicated;
+in all o    ther cases, existing destination files will be skipped, the `num` substitution value will be incremented, a new `--output` file path will be generated, and the operation will be retried with that new path;
+source a    nd destination file directories can be the same (set so explicitly or via unset `--to`), in which case each source file will simply be renamed to use its new `--output` name, though renames that attempt to swap files will fail""")
+                    ),
+                )
+                grp.add_argument("--overwrite", dest="allow_updates", action="store_true",
+                    help=_("overwrite old files under `OUTPUT_DESTINATION`; default when running with `--symlink` combined with `--latest`"),
+                )
+                cmd.set_defaults(allow_updates=MISSING)
+
+                agrp.add_argument("--latest", dest="latest", action="store_true",
+                    help=_("""replace files under `OUTPUT_DESTINATION` with their latest version;
+this is     only allowed in combination with `--symlink` at the moment;
+for each     source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
+"""),
+                )
+            else:
+                grp.add_argument("--skip-existing", "--no-overwrite", dest="allow_updates", action="store_false",
+                    help=(
+                        def_skip
+                        + _("; default")
+                        + ";\n"
+                        + _("""repeated `mirror`s of the same targets with the same parameters (which, therefore, will produce the same `--output` data) will still be allowed and elided into noops but trying to overwrite existing files under `OUTPUT_DESTINATION` with new data will produce errors;
+this beh    aviour allows the same `OUTPUT_DESTINATION` to be reused between unrelated `mirror`s and between `mirror`s that produce the same data on disk in their common parts;
+however,     note that such reuse combined with `--depth` is likely to produce partially broken results, since skipped rendering of a document will also skip rendering of it references""")
+                    ),
+                )
+                grp.add_argument("--overwrite", dest="allow_updates", action="store_true",
+                    help=_("overwrite old files under `OUTPUT_DESTINATION`"),
+                )
+                cmd.set_defaults(allow_updates=False)
+
+            agrp.add_argument("--please-destroy-my-data", dest="force", action="store_true",
+                help=_("permit `--overwrite` usage even when it can loose your data; **DANGEROUS!**"),
+            )
+
         add_terminator(cmd, "new `--output`s printing", "print absolute paths of newly produced or replaced files", allow_not=False, allow_none=True)
-
-        if kind == "serve":
-            return
-
-        agrp = cmd.add_argument_group("updates to `--output`s")
-        grp = agrp.add_mutually_exclusive_group()
-
-        def_disallow = _("disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default")
-
-        def def_dangerous(what: str) -> str:
-            return _(f"DANGEROUS! not recommended, {what} to a new `OUTPUT_DESTINATION` with the default `--no-overwrite` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this")
-
-        if kind == "organize":
-            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_false",
-                help=def_disallow
-                + ";\n"
-                + _("""`--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
-when the operation's source is binary-eqivalent to the `--output` target, the operation will be permitted, but the disk write will be reduced to a noop, i.e. the results will be deduplicated;
-the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap files will still fail
-"""),
-            )
-            grp.add_argument("--latest", dest="allow_updates", action="store_true",
-                help=_("""replace files under `OUTPUT_DESTINATION` with their latest version;
-this is only allowed in combination with `--symlink` at the moment;
-for each source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
-"""),
-            )
-        elif kind == "import":
-            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_false",
-                help=def_disallow,
-            )
-            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_true",
-                help=_("permit overwrites to files under `OUTPUT_DESTINATION`")
-                + ";\n"
-                + def_dangerous("importing"),
-            )
-        elif kind == "mirror":
-            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_false",
-                help=def_disallow
-                + ";\n"
-                + _("""repeated `mirror`s of the same targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
-however, trying to overwrite existing files under `OUTPUT_DESTINATION` with any new data will produce errors;
-this allows reusing the `OUTPUT_DESTINATION` between unrelated `mirror`s and between `mirror`s that produce the same data on disk in their common parts
-"""),
-            )
-            grp.add_argument("--skip-existing", "--partial", dest="allow_updates", action="store_const", const="partial",
-                help=_("""skip rendering of targets which have a corresponding file under `OUTPUT_DESTINATION`, use the contents of such files instead;
-using this together with `--depth` is likely to produce a partially broken result, since skipping of a document will also skip all of the things it references;
-on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
-"""),
-            )
-            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_true",
-                help=_("mirror all targets while permitting overwriting of old `--output` files under `OUTPUT_DESTINATION`")
-                + ";\n"
-                + def_dangerous("mirroring"),
-            )
-
-        cmd.set_defaults(allow_updates=False)
 
     # organize
     cmd = subparsers.add_parser("organize",
