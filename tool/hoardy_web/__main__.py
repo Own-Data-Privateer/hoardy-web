@@ -4352,7 +4352,7 @@ In short, this is `{__prog__} organize --copy` for `INPUT` files that use differ
 
     def add_index_memory(cmd: _t.Any) -> None:
         agrp = cmd.add_argument_group("caching")
-        agrp.add_argument("--max-memory", metavar="INT", dest="max_memory", type=int, default=1024,
+        agrp.add_argument("--memory", "--max-memory", metavar="INT", type=int, default=1024,
             help=_("""the caches, all taken together, must not take more than this much memory in MiB; default: `%(default)s`;
 making this larger improves performance;
 the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <numer of indexed files> + <sum of lengths of all their --output paths> + <--max-memory>)`"""),

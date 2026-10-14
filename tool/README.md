@@ -2674,7 +2674,7 @@ Essentially, this subcommand is a combination of `hoardy-web organize --copy` fo
   : don't log file updates and don't print end-of-filtering warnings to stderr
 
 - caching:
-  - `--max-memory INT`
+  - `--memory, --max-memory INT`
   : the caches, all taken together, must not take more than this much memory in MiB; default: `1024`;
     making this larger improves performance;
     the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <numer of indexed files> + <sum of lengths of all their --output paths> + <--max-memory>)`
@@ -3073,7 +3073,7 @@ The end.
   : don't don't print end-of-filtering warnings, don't print optional informational messages, and don't log HTTP requests to stderr
 
 - caching:
-  - `--max-memory INT`
+  - `--memory, --max-memory INT`
   : the caches, all taken together, must not take more than this much memory in MiB; default: `1024`;
     making this larger improves performance;
     the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <numer of indexed files> + <sum of lengths of all their --output paths> + <--max-memory>)`
