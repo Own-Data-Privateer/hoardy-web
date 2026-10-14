@@ -86,6 +86,14 @@ function idbTransaction(db, mode, objectStoreNames, func) {
         let result;
         let error;
         transaction.onerror = (event) => reject(error !== undefined ? error : event.target.error);
+        // An explicit abort can fire without a request error. Always settle the
+        // caller so persistence can retain IDs and enter its recovery path.
+        transaction.onabort = () =>
+            reject(
+                error !== undefined
+                    ? error
+                    : transaction.error || new DOMException("Transaction aborted", "AbortError"),
+            );
         transaction.oncomplete = (_event) => {
             if (result instanceof Promise) {
                 result.then(resolve, reject);
@@ -106,8 +114,13 @@ function idbTransaction(db, mode, objectStoreNames, func) {
         if (result instanceof Promise) {
             result.catch((err) => {
                 error = err;
-                transaction.abort();
-                throw err;
+                try {
+                    transaction.abort();
+                } catch (_abortError) {
+                    // The transaction may have already completed. Reject the
+                    // outer promise without creating an unhandled rejection.
+                    reject(err);
+                }
             });
         }
     });

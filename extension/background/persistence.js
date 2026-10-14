@@ -380,7 +380,34 @@ async function exportAsOne(archivable, bundleBuckets, unarchivedAccumulator) {
 
 // Archival via submission to an HTTP archiving server.
 
-async function submitHTTPOne(archivable, unarchivedAccumulator) {
+// Prepare uploads without changing archival flags, counters, or failure queues.
+// Those changes stay in submitHTTPOne, in queue order, after each response.
+async function postHTTPDump(archivable, storeID) {
+    let dump = await loadDumpFromStorage(archivable, true, false);
+    let response;
+    try {
+        response = await fetch(storeID, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/cbor",
+                "Content-Length": dump.byteLength.toString(),
+            },
+            body: dump,
+        });
+    } catch (err) {
+        return { connectionError: err };
+    }
+    return { response, responseText: await response.text() };
+}
+
+function httpStoreID(loggable) {
+    let url = new URL(serverConfig.baseURL);
+    url.pathname = serverConfig.info.dump_wrr;
+    url.search = "profile=" + encodeURIComponent(loggable.bucket || config.root.bucket);
+    return url.href;
+}
+
+async function submitHTTPOne(archivable, unarchivedAccumulator, prepared) {
     let loggable = archivable[0];
     let dumpSize = loggable.dumpSize;
 
@@ -408,10 +435,7 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
         return false;
     }
 
-    let serverURL = new URL(serverConfig.baseURL);
-    serverURL.pathname = serverConfig.info.dump_wrr;
-    serverURL.search = "profile=" + encodeURIComponent(loggable.bucket || config.root.bucket);
-    let storeID = serverURL.href;
+    let storeID = httpStoreID(loggable);
 
     if (
         config.submitHTTPParanoid &&
@@ -429,30 +453,27 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
         console.info("PERSISTENCE: HTTP: submitting", loggable);
     }
 
-    let dump = await loadDumpFromStorage(archivable, true, false);
-
-    let response;
-    try {
-        response = await fetch(storeID, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/cbor",
-                "Content-Length": dump.byteLength.toString(),
-            },
-            body: dump,
-        });
-    } catch (err) {
+    let result;
+    if (prepared !== undefined && prepared.storeID === storeID) {
+        if (prepared.status === "rejected") {
+            throw prepared.reason;
+        }
+        result = prepared.value;
+    } else {
+        result = await postHTTPDump(archivable, storeID);
+    }
+    if (result.connectionError !== undefined) {
         // NB: breaking the whole server here, not just `storeID`
         broken(
             config.submitHTTPURLBase,
-            `\`Hoardy-Web\` can't establish a connection to the archiving server: ${errorMessageOf(err)}`,
+            `\`Hoardy-Web\` can't establish a connection to the archiving server: ${errorMessageOf(result.connectionError)}`,
             true,
         );
         serverConfig.alive = false;
         return false;
     }
 
-    let responseText = await response.text();
+    let { response, responseText } = result;
 
     if (response.status !== 200) {
         broken(
@@ -553,38 +574,81 @@ function selectTSS(inLS) {
     return [mkIDBTransaction, state.stashedIDB, state.savedIDB];
 }
 
-async function wipeFromStorage(tss, dumpSize, dumpId, stashId, saveId) {
+async function wipeManyFromStorage(tss, records) {
     let [mkTransaction, stashStats, savedStats] = tss;
 
     await mkTransaction(async (_transaction, dumpStore, stashStore, saveStore) => {
-        if (dumpId !== undefined) {
-            await dumpStore.delete(dumpId);
-        }
-        if (stashId !== undefined) {
-            await stashStore.delete(stashId);
-        }
-        if (saveId !== undefined) {
-            await saveStore.delete(saveId);
+        for (let { dumpId, stashId, saveId } of records) {
+            if (dumpId !== undefined) {
+                await dumpStore.delete(dumpId);
+            }
+            if (stashId !== undefined) {
+                await stashStore.delete(stashId);
+            }
+            if (saveId !== undefined) {
+                await saveStore.delete(saveId);
+            }
         }
     });
 
-    if (dumpId !== undefined) {
-        state.dumpedUndo += 1;
-        wantSaveState = true;
+    // Never advance counters before the transaction has succeeded.
+    for (let { dumpSize, dumpId, stashId, saveId } of records) {
+        if (dumpId !== undefined) {
+            state.dumpedUndo += 1;
+            wantSaveState = true;
+        }
+        if (stashId !== undefined) {
+            stashStats.number -= 1;
+            stashStats.size -= dumpSize;
+            state.stashedUndo += 1;
+            wantSaveState = true;
+        }
+        if (saveId !== undefined) {
+            savedStats.number -= 1;
+            savedStats.size -= dumpSize;
+            state.savedUndo += 1;
+            wantSaveState = true;
+        }
     }
+}
 
-    if (stashId !== undefined) {
-        stashStats.number -= 1;
-        stashStats.size -= dumpSize;
-        state.stashedUndo += 1;
-        wantSaveState = true;
-    }
+async function wipeFromStorage(tss, dumpSize, dumpId, stashId, saveId) {
+    return wipeManyFromStorage(tss, [{ dumpSize, dumpId, stashId, saveId }]);
+}
 
-    if (saveId !== undefined) {
-        savedStats.number -= 1;
-        savedStats.size -= dumpSize;
-        state.savedUndo += 1;
-        wantSaveState = true;
+async function deleteArchivedBatch(archivables) {
+    // Keep local-storage and IndexedDB transactions separate. The scheduler
+    // awaits the whole operation, so stashing cannot interleave with cleanup.
+    for (let inLS of [true, false]) {
+        let group = archivables.filter(
+            ([l]) =>
+                (l.inLS !== false) === inLS &&
+                (l.dumpId !== undefined || l.stashId !== undefined || l.saveId !== undefined),
+        );
+        if (group.length === 0) {
+            continue;
+        }
+        try {
+            await wipeManyFromStorage(
+                selectTSS(inLS),
+                group.map(([l]) => l),
+            );
+            for (let [l] of group) {
+                delete l.dirty;
+                delete l.inLS;
+                delete l.dumpId;
+                delete l.stashId;
+                delete l.saveId;
+            }
+        } catch (err) {
+            // Retain every affected archivable in the existing recovery path.
+            // A failed transaction must not make in-memory IDs disappear.
+            logHandledError(err);
+            for (let archivable of group) {
+                markAsBuggedOut(err, archivable);
+                await syncWithStorage(archivable, 1, true).catch(logError);
+            }
+        }
     }
 }
 
@@ -1161,6 +1225,8 @@ async function archive(
     bundleBuckets,
     unarchivedAccumulator,
     unstashedAccumulator,
+    prepared,
+    pendingDeletes,
 ) {
     let changedNum = 0;
     let exportedNum = 0;
@@ -1199,7 +1265,7 @@ async function archive(
             }
 
             if (wantArchived & archivedViaSubmitHTTP) {
-                let res = await submitHTTPOne(archivable, unarchivedAccumulator);
+                let res = await submitHTTPOne(archivable, unarchivedAccumulator, prepared);
                 allOK &&= res !== false;
                 if (res === true) {
                     changed = true;
@@ -1228,11 +1294,17 @@ async function archive(
                 } else if (andDelete) {
                     // NB: (notEliding) so that a failing `bucketSaveAs` called from
                     // `scheduleBucketSaveAs` wouldn't end up with archivables without their dumps
-                    let res = await syncWithStorage(archivable, 0, false);
-                    allOK &&= res !== false;
-                    if (res === true) {
-                        changed = true;
-                        deletedNum += 1;
+                    if (pendingDeletes !== undefined) {
+                        // Only the bounded HTTP-only drain defers cleanup. It awaits
+                        // the commit before yielding back to other scheduler actions.
+                        pendingDeletes.push(archivable);
+                    } else {
+                        let res = await syncWithStorage(archivable, 0, false);
+                        allOK &&= res !== false;
+                        if (res === true) {
+                            changed = true;
+                            deletedNum += 1;
+                        }
                     }
                 }
 
@@ -1274,66 +1346,152 @@ async function archive(
     return [changedNum, exportedNum, submittedNum, savedNum, deletedNum];
 }
 
-async function processArchiving() {
-    let updatedTabId;
+function pickHTTPBatch(queue, limit, maxBytes) {
+    let batch = [];
+    let seen = new Set();
+    let bytes = 0;
+    for (let archivable of queue) {
+        let size = archivable[0].dumpSize;
+        if (
+            batch.length >= limit ||
+            seen.has(archivable) ||
+            (batch.length > 0 && bytes + size > maxBytes)
+        ) {
+            break;
+        }
+        batch.push(archivable);
+        seen.add(archivable);
+        bytes += size;
+    }
+    // An oversized first capture still makes progress, alone.
+    return batch;
+}
 
-    while (
+async function prepareHTTPBatch(batch) {
+    return Promise.all(
+        batch.map(async (archivable) => {
+            if (archivable[0].archived & archivedViaSubmitHTTP) {
+                return undefined;
+            }
+            let storeID;
+            try {
+                updateLoggable(archivable[0]);
+                storeID = httpStoreID(archivable[0]);
+                return {
+                    storeID,
+                    status: "fulfilled",
+                    value: await postHTTPDump(archivable, storeID),
+                };
+            } catch (reason) {
+                return { storeID, status: "rejected", reason };
+            }
+        }),
+    );
+}
+
+function canProcessArchiving() {
+    return (
         config.archive &&
         synchronousClosuresA.length === 0 &&
         reqresAlmostDone.length === 0 &&
         synchronousClosuresB.length === 0 &&
         reqresQueue.length > 0
-    ) {
-        let archivable = reqresQueue.shift();
+    );
+}
 
+async function processArchiving() {
+    let updatedTabId;
+
+    while (canProcessArchiving()) {
+        // Mixed archival methods retain their existing serial semantics. The
+        // queue remains intact while HTTP requests are pending, so pause/reload
+        // and recovery logic can still find every outstanding capture.
+        let parallel =
+            config.submitHTTPConcurrency > 1 &&
+            config.archiveSubmitHTTP &&
+            !config.archiveSaveLS &&
+            !config.archiveExportAs &&
+            !config.discardAll &&
+            serverConfig.alive &&
+            serverConfig.canDump &&
+            (!config.submitHTTPParanoid || reqresUnarchivedIssueAcc[0].size === 0);
+        let batch = parallel
+            ? pickHTTPBatch(
+                  reqresQueue,
+                  config.submitHTTPConcurrency,
+                  config.submitHTTPMemory * MEGABYTE,
+              )
+            : [reqresQueue[0]];
+        let wasElided = batch.map((a) => a[1] === null);
+        let prepared = parallel ? await prepareHTTPBatch(batch) : [];
+        let pendingDeletes = parallel ? [] : undefined;
+        let consumed = 0;
         try {
-            let loggable = archivable[0];
-            let dumpSize = loggable.dumpSize;
-            reqresQueueSize -= dumpSize;
-
-            let wantArchived =
-                (config.archiveExportAs ? archivedViaExportAs : 0) |
-                (config.archiveSubmitHTTP ? archivedViaSubmitHTTP : 0) |
-                (config.archiveSaveLS ? archivedIntoLS : 0);
-
-            if (config.discardAll) {
-                await deleteOne(archivable);
-                continue;
+            for (let i = 0; i < batch.length; i++) {
+                // Service higher-priority work between bounded batches, or stop
+                // promptly after the current HTTP batch if archiving was paused.
+                if (!config.archive || reqresQueue[0] !== batch[i]) {
+                    break;
+                }
+                let archivable = reqresQueue.shift();
+                consumed++;
+                try {
+                    let loggable = archivable[0];
+                    reqresQueueSize -= loggable.dumpSize;
+                    let wantArchived =
+                        (config.archiveExportAs ? archivedViaExportAs : 0) |
+                        (config.archiveSubmitHTTP ? archivedViaSubmitHTTP : 0) |
+                        (config.archiveSaveLS ? archivedIntoLS : 0);
+                    if (config.discardAll) {
+                        await deleteOne(archivable);
+                        continue;
+                    }
+                    updateLoggable(loggable);
+                    let [_changedNum, exportedNum, submittedNum, savedNum, _deletedNum] =
+                        await archive(
+                            [archivable],
+                            wantArchived,
+                            false,
+                            false,
+                            true,
+                            true,
+                            reqresBundledAs,
+                            reqresUnarchivedIssueAcc,
+                            reqresUnstashedIssueAcc,
+                            prepared[i],
+                            pendingDeletes,
+                        );
+                    if (exportedNum > 0) {
+                        wantBucketSaveAs = true;
+                    }
+                    if (exportedNum > 0 || submittedNum > 0 || savedNum > 0) {
+                        gotNewArchivedOrNot = true;
+                    }
+                    let tabId = loggable.tabId;
+                    updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
+                    scheduleUpdateDisplay(true, tabId, false, getGoodEpisodic(reqresQueue.length));
+                } catch (err) {
+                    logHandledError(err);
+                    markAsBuggedOut(err, archivable);
+                }
             }
-
-            updateLoggable(loggable);
-
-            let [_changedNum, exportedNum, submittedNum, savedNum, _deletedNum] = await archive(
-                [archivable],
-                wantArchived,
-                false,
-                false,
-                true,
-                true,
-                reqresBundledAs,
-                reqresUnarchivedIssueAcc,
-                reqresUnstashedIssueAcc,
-            );
-
-            if (exportedNum > 0) {
-                wantBucketSaveAs = true;
+        } finally {
+            if (pendingDeletes !== undefined) {
+                await deleteArchivedBatch(pendingDeletes);
             }
-            if (exportedNum > 0 || submittedNum > 0 || savedNum > 0) {
-                gotNewArchivedOrNot = true;
+            // A pause/config change can leave prepared requests unconsumed.
+            // Keep their disk copies and release the temporary payloads. Retrying
+            // can duplicate an acknowledged upload, but cannot lose a capture.
+            for (let i = consumed; i < batch.length; i++) {
+                if (wasElided[i]) {
+                    batch[i][1] = null;
+                }
             }
-
-            let tabId = loggable.tabId;
-            updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
-            scheduleUpdateDisplay(true, tabId, false, getGoodEpisodic(reqresQueue.length));
-        } catch (err) {
-            logHandledError(err);
-            markAsBuggedOut(err, archivable);
         }
     }
 
     broadcastToState(null, "resetQueued", getQueued);
     broadcastToState(null, "resetUnarchived", getUnarchived);
-
     return updatedTabId;
 }
 

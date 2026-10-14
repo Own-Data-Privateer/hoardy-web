@@ -36,6 +36,7 @@ class LSlotTransaction {
         this.storage = storage;
         this._toPut = {}; // what needs to be written back
         this._toDelete = new Set(); // what needs to be deleted
+        this._metaRead = new Map(); // bounded metadata cache; never retain dump payloads
     }
 
     async get(id) {
@@ -44,8 +45,16 @@ class LSlotTransaction {
             throw new Error("trying to `get` after a `delete`");
         }
 
-        let res = await storageGetOne(this.storage, id);
-        return res;
+        if (Object.prototype.hasOwnProperty.call(this._toPut, id)) {
+            return this._toPut[id];
+        }
+        if (!id.startsWith("lsmeta-")) {
+            return storageGetOne(this.storage, id);
+        }
+        if (!this._metaRead.has(id)) {
+            this._metaRead.set(id, await storageGetOne(this.storage, id));
+        }
+        return this._metaRead.get(id);
     }
 
     put(id, data) {
@@ -59,7 +68,9 @@ class LSlotTransaction {
     }
 
     async commit() {
-        await this.storage.set(this._toPut);
+        if (Object.keys(this._toPut).length > 0) {
+            await this.storage.set(this._toPut);
+        }
         if (this._toDelete.size > 0) {
             await this.storage.remove(Array.from(this._toDelete));
         }
@@ -159,7 +170,9 @@ class LSlotObjectStore {
     async findEmptySlot(start) {
         while (true) {
             let sid = lslotDataIdOf(this.name, start);
-            let res = await storageGetOne(this.transaction.storage, sid);
+            let res = this.transaction._toDelete.has(sid)
+                ? undefined
+                : await this.transaction.get(sid);
             if (res === undefined) {
                 return [start, sid];
             }

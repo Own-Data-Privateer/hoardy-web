@@ -103,6 +103,9 @@ let configDefaults = {
     replaySubmitHTTP: null,
     submitHTTPURLBase: "http://127.0.0.1:3210/",
     submitHTTPParanoid: true,
+    // Keep legacy serial behavior unless the user opts into bounded batches.
+    submitHTTPConcurrency: 1,
+    submitHTTPMemory: 32,
 
     // saving to local storage
     archiveSaveLS: true,
@@ -563,6 +566,11 @@ function fixConfig(config, oldConfig, serverConfig) {
                 .catch(logError);
         }
     }
+
+    config.submitHTTPConcurrency = Math.floor(
+        clamp(1, 128, toNumber(config.submitHTTPConcurrency)),
+    );
+    config.submitHTTPMemory = Math.floor(clamp(1, 512, toNumber(config.submitHTTPMemory)));
 
     config.exportAsMaxSize = clamp(1, 512, toNumber(config.exportAsMaxSize));
     config.exportAsTimeout = clamp(1, 900, toNumber(config.exportAsTimeout));

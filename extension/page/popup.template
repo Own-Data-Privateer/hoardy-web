@@ -692,6 +692,8 @@ section {
     <!-- sibmitHTTPOptions -->
 
     <ui id="config.submitHTTPURLBase" type="string" data-help="URL of the archiving server we are submitting to.">Server URL</ui>
+    <ui id="config.submitHTTPConcurrency" type="number" data-help="Maximum concurrent submissions when draining an HTTP-only archival queue, from 1 to 128. Default: 1 (serial). Try 4 for a local server. Larger values can increase contention. Saving locally or exporting via saveAs keeps the serial path; re-archival is unchanged. Pausing waits for already-started requests. Interrupted batches may be uploaded again. Automatic cleanup requires a successful acknowledgement.">HTTP upload batch size: {}</ui>
+    <ui id="config.submitHTTPMemory" type="number" data-help="Maximum sum of uncompressed capture sizes in an HTTP upload batch, from 1 to 512 MiB. Browser and network overhead consume additional memory. A capture exceeding the budget is processed alone.">HTTP batch payload budget: {} MiB</ui>
     <div><span>(Compression is done server-side.)</span></div>
     <ui id="config.submitHTTPParanoid" type="boolean" class="prefer-on" data-help="When the archiving server returns an error, mark all the other yet to be archived reqres as failed. When disabled, only the failing reqres will be marked as failed and the archiving will continue as normal. I.e., disabling this disables `this archiving server appears to be defunct` reqres failures. Enabled by default because the server returning errors usually means the file system is out of space, so this behaviour is safer and could save a lot of network bandwidth if the archiving server is non-local.">Paranoid error handling</ui>
 
