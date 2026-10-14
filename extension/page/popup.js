@@ -26,6 +26,13 @@
 let dbody = document.body;
 let pbody;
 
+// getViews distinguishes the toolbar popup from settings tabs and the help
+// iframe without changing the dimensions of those other views.
+if (!isMobile && browser.extension.getViews({ type: "popup" }).includes(window)) {
+    dbody.classList.add("toolbar-popup");
+    document.documentElement.classList.add("toolbar-popup");
+}
+
 const tagNames = ["def", "glob", "win", "tab", "cls", "sar", "bh", "ui", "all"];
 
 function showTab(name) {

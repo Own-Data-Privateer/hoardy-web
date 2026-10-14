@@ -14,8 +14,36 @@ body {
     margin: 0;
     padding: 0;
 
-    /* NB: keep it smaller than the `--popup` value in ./help.template */
-    min-width: 390px;
+    /* Embedded help and mobile settings follow their available viewport. */
+    min-width: min(390px, 100vw);
+}
+
+/* Only browser-action popups get a stable viewport. Full tabs and the help
+   iframe keep their responsive layout. The browser caps this to screen space. */
+html.toolbar-popup {
+    width: 560px;
+    height: 600px;
+    max-width: 100vw;
+    max-height: 100vh;
+    overflow: hidden;
+}
+
+body.toolbar-popup {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+.reload-slot {
+    display: inline-grid;
+    width: 5em;
+    height: 1.8em;
+    align-items: center;
+}
+
+.reload-slot > span {
+    grid-area: 1 / 1;
 }
 
 #body {
@@ -30,6 +58,7 @@ h4 {
     margin: 0;
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .sparse h1,
@@ -84,6 +113,7 @@ h4 input[type="button"] {
     display: flex;
     margin: 0 0 0 0;
     width: 100%;
+    overflow-x: auto;
 }
 
 #tags > .spacer {
@@ -146,9 +176,17 @@ h4 input[type="button"] {
     margin-left: 12px;
 }
 
+.stats > .help-root,
+.stats .idots3 > .help-root {
+    display: block;
+    white-space: normal;
+}
+
 .stats .help-root > div {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content minmax(16ch, 22ch) 1em;
+    gap: 0 0.4em;
+    align-items: baseline;
 }
 
 .sparse .stats .help-root > div {
@@ -156,29 +194,58 @@ h4 input[type="button"] {
 }
 
 .stats .help-root > div > span:nth-child(2) {
-    padding-left: 1em;
-    margin: 0 1em 0 auto;
     text-align: right;
 }
 
 .stats .help-root > div > span:nth-child(3) {
-    min-width: 8em;
+    min-width: 0;
     text-align: right;
-    white-space: wrap;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    /* Very long values remain available without changing the row geometry. */
+    overflow-x: auto;
+    scrollbar-width: thin;
 }
 
-.sparse .stats .help-root > div > span:nth-child(3) {
-    min-width: 4em;
+.stats .help-root > div.action-detail {
+    grid-template-columns: 7em minmax(0, 1fr) 1em;
+    align-items: start;
 }
 
-div.target {
-    padding: 0.5em;
+.stats .help-root > div.action-detail > span:nth-child(2) {
+    display: none;
 }
 
-span.target,
-input.target {
-    display: inline-block;
-    padding: 1em;
+.stats .help-root > div.action-detail > span:nth-child(3) {
+    height: 3.2em;
+    overflow: auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
+@media (max-width: 440px) {
+    .stats .help-root > div {
+        grid-template-columns: minmax(0, 1fr) max-content 1em;
+    }
+    .stats .help-root > div > span:nth-child(3) {
+        grid-column: 1 / 3;
+        grid-row: 2;
+    }
+    .stats .help-root > div > .help-btn {
+        grid-column: 3;
+        grid-row: 1;
+    }
+    .stats .help-root > div.action-detail > span:nth-child(3) {
+        grid-column: 2;
+        grid-row: 1;
+    }
+}
+
+/* Highlighting a help target must not change control dimensions. */
+div.target, span.target, input.target {
+    outline: 2px solid var(--target-background-1);
+    outline-offset: 1px;
 }
 }
 
@@ -186,6 +253,15 @@ input.target {
 section {
     background: var(--text-background);
     border-radius: 3px;
+}
+
+}
+
+@layer highlight {
+input.attention {
+    border-width: 1px;
+    outline: 2px solid var(--attention-border-color);
+    outline-offset: 1px;
 }
 }
     </style>
@@ -219,11 +295,13 @@ section {
         <input id="version" type="button" data-help="Open the `Changelog` page." value="v?" />
       </span>
       <span class="right">
+        <span class="reload-slot">
         <span id="div-reloadSelf" class="on-reload">
           <input id="reloadSelf" type="button" data-help="Reload and update `Hoardy-Web`. That is, ask `Hoardy-Web` to perform the following: wait for all in-flight reqres to finish, stash everything not yet stashed into local storage (regardless of `Stash reqres into local storage` and `Stash 'in_limbo' reqres` options), run all scheduled actions immediately, dump the recent history log and per-tab configs into local storage, and then, if all of the above succeed, ask the browser to reload `Hoardy-Web`. If the browser has a new version of `Hoardy-Web` fetched and ready to go (which it has if this button appears to be highlighted), pressing this button will make the browser unload this and then load the new version of `Hoardy-Web`, thus updating it without a browser restart. This feature is experimental at the moment. See also `Auto-reload on updates` option below." value="Reload" />
         </span>
         <span class="on-pending">
           <input id="cancelReloadSelf" type="button" data-help="Cancel pending `Hoardy-Web` reload." value="Cancel!" />
+        </span>
         </span>
         <input id="showHelp" type="button" data-help="Open the `Help` page." value="Help" />
       </span>
@@ -254,7 +332,7 @@ section {
         </span>
       </div>
       <div class="idots3">
-      <div id="div-stats.running_actions" class="tag-all" data-help="Names of the currently running internal actions.">
+      <div id="div-stats.running_actions" class="tag-all action-detail" data-help="Names of the currently running internal actions.">
         <span>... running</span>
         <span>
         </span>
@@ -262,7 +340,7 @@ section {
           <span id="stats.running_actions"></span>
         </span>
       </div>
-      <div id="div-stats.scheduled_actions" class="tag-all" data-help="Names of the currently scheduled internal actions.">
+      <div id="div-stats.scheduled_actions" class="tag-all action-detail" data-help="Names of the currently scheduled internal actions.">
         <span>... scheduled</span>
         <span>
         </span>
