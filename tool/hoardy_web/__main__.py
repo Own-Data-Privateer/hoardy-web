@@ -3659,8 +3659,7 @@ if other parts of the date are not specified, they get substituted from `<year>-
     def add_termsep(
         cmd: _t.Any,
         name: str,
-        what: str = "printing of `--expr` values",
-        whatval: str = "print `--expr` values",
+        what: str = "print `--expr` values",
         allow_not: bool = True,
         allow_none: bool = False,
         short: bool = True,
@@ -3671,26 +3670,26 @@ if other parts of the date are not specified, they get substituted from `<year>-
         def_def = "; " + _("default")
         def_val: bytes | None
         if allow_none:
-            grp.add_argument("--no-print", dest=f"{name}ator", action="store_const", const=None,
-                help=_("don't print anything") + def_def,
-            )
             def_lf = ""
             def_val = None
         else:
             def_lf = def_def
             def_val = b"\n"
 
-        if allow_not:
-            grp.add_argument(f"--not-{name}ated", dest=f"{name}ator", action="store_const", const=b"",
-                help=_(f"{whatval} without {name}ating them with anything, just concatenate them"),
-            )
-
         grp.add_argument(*optlist(short, "-l"), f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const=b"\n",
-            help=_(f"{whatval} {name}ated with `\\n` (LF) newline characters") + def_lf,
+            help=_(f"... by {name}ating them with `\\n` (LF) newline characters") + def_lf,
         )
         grp.add_argument(*optlist(short, "-z"), f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const=b"\0",
-            help=_(f"{whatval} {name}ated with `\\0` (NUL) bytes"),
+            help=_(f"... by {name}ating them with `\\0` (NUL) bytes"),
         )
+        if allow_not:
+            grp.add_argument(f"--not-{name}ated", dest=f"{name}ator", action="store_const", const=b"",
+                help=_("... by simply concatenating them"),
+            )
+        if allow_none:
+            grp.add_argument("--no-print", dest=f"{name}ator", action="store_const", const=None,
+                help=_("... not at all") + def_def,
+            )
 
         if name == "termin":
             cmd.set_defaults(terminator=def_val)
@@ -3913,10 +3912,10 @@ if other parts of the date are not specified, they get substituted from `<year>-
             )
 
         if kind == "stream":
-            add_terminator(cmd, "`--format=raw` `--expr` printing", "print `--format=raw` `--expr` output values")
+            add_terminator(cmd, "print `--format=raw` `--expr` output values")
             cmd.set_defaults(default_expr="dot")
         elif kind in ("mirror", "serve"):
-            add_separator(cmd, "rendering of `--expr` values", "render `--expr` values into outputs", short=False)
+            add_separator(cmd, "render `--expr` values into `--output` files", short=False)
             cmd.set_defaults(default_expr="all")
         else:
             add_separator(cmd)
@@ -4115,7 +4114,7 @@ The end.
     )
     add_pure(cmd)
     add_common(cmd, "find", "print path of reqres when")
-    add_terminator(cmd, "found files printing", "print absolute paths of matching `WRR` files", allow_not=False)
+    add_terminator(cmd, "print paths of matching `WRR` files", allow_not=False)
     cmd.set_defaults(sniff=SniffContentType.NONE)
     cmd.set_defaults(func=cmd_find)
 
@@ -4260,7 +4259,9 @@ however,     note that such reuse combined with `--depth` is likely to produce p
                 help=_("permit `--overwrite` usage even when it can loose your data; **DANGEROUS!**"),
             )
 
-        add_terminator(cmd, "new `--output`s printing", "print absolute paths of newly produced or replaced files", allow_not=False, allow_none=True)
+            add_terminator(cmd, "print paths of newly produced/overwritten `--output`s", allow_not=False, allow_none=True)
+        else:
+            add_terminator(cmd, "print paths of newly produced `--output`s", allow_not=False, allow_none=True)
 
     # organize
     cmd = subparsers.add_parser("organize",

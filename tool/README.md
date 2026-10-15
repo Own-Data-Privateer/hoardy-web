@@ -1522,13 +1522,13 @@ The end.
         - `https://königsgäßchen.example.org/index.html` -> `https://königsgäßchen.example.org/index.html`
         - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https://ジャジェメント.ですの.example.org/испытание/is/`
 
-- printing of `--expr` values:
-  - `--not-separated`
-  : print `--expr` values without separating them with anything, just concatenate them
+- print `--expr` values:
   - `-l, --lf-separated`
-  : print `--expr` values separated with `\n` (LF) newline characters; default
+  : ... by separating them with `\n` (LF) newline characters; default
   - `-z, --zero-separated`
-  : print `--expr` values separated with `\0` (NUL) bytes
+  : ... by separating them with `\0` (NUL) bytes
+  - `--not-separated`
+  : ... by simply concatenating them
 
 - default value of `--expr`:
   - `--raw-qbody`
@@ -1587,13 +1587,13 @@ Essentially, this is `hoardy-web get` into a temporary file for each given `PATH
   - `-e, --expr EXPR`
   : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options below
 
-- printing of `--expr` values:
-  - `--not-separated`
-  : print `--expr` values without separating them with anything, just concatenate them
+- print `--expr` values:
   - `-l, --lf-separated`
-  : print `--expr` values separated with `\n` (LF) newline characters; default
+  : ... by separating them with `\n` (LF) newline characters; default
   - `-z, --zero-separated`
-  : print `--expr` values separated with `\0` (NUL) bytes
+  : ... by separating them with `\0` (NUL) bytes
+  - `--not-separated`
+  : ... by simply concatenating them
 
 - default value of `--expr`:
   - `--raw-qbody`
@@ -1686,13 +1686,13 @@ Essentially, this is a generalized `hoardy-web get`.
   - `-e, --expr EXPR`
   : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options below
 
-- `--format=raw` `--expr` printing:
-  - `--not-terminated`
-  : print `--format=raw` `--expr` output values without terminating them with anything, just concatenate them
+- print `--format=raw` `--expr` output values:
   - `-l, --lf-terminated`
-  : print `--format=raw` `--expr` output values terminated with `\n` (LF) newline characters; default
+  : ... by terminating them with `\n` (LF) newline characters; default
   - `-z, --zero-terminated`
-  : print `--format=raw` `--expr` output values terminated with `\0` (NUL) bytes
+  : ... by terminating them with `\0` (NUL) bytes
+  - `--not-terminated`
+  : ... by simply concatenating them
 
 - default value of `--expr`:
   - `--structure`
@@ -1771,11 +1771,11 @@ The end.
   - `--sniff-paranoid`
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
-- found files printing:
+- print paths of matching `WRR` files:
   - `-l, --lf-terminated`
-  : print absolute paths of matching `WRR` files terminated with `\n` (LF) newline characters; default
+  : ... by terminating them with `\n` (LF) newline characters; default
   - `-z, --zero-terminated`
-  : print absolute paths of matching `WRR` files terminated with `\0` (NUL) bytes
+  : ... by terminating them with `\0` (NUL) bytes
 
 ### hoardy-web organize
 
@@ -2413,13 +2413,13 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
   - `--please-destroy-my-data`
   : permit `--overwrite` usage even when it can loose your data; **DANGEROUS!**
 
-- new `--output`s printing:
-  - `--no-print`
-  : don't print anything; default
+- print paths of newly produced/overwritten `--output`s:
   - `-l, --lf-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
+  : ... by terminating them with `\n` (LF) newline characters
   - `-z, --zero-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
+  : ... by terminating them with `\0` (NUL) bytes
+  - `--no-print`
+  : ... not at all; default
 
 ### hoardy-web import
 
@@ -2526,13 +2526,13 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   - `-o, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
 
-- new `--output`s printing:
-  - `--no-print`
-  : don't print anything; default
+- print paths of newly produced `--output`s:
   - `-l, --lf-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
+  : ... by terminating them with `\n` (LF) newline characters
   - `-z, --zero-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
+  : ... by terminating them with `\0` (NUL) bytes
+  - `--no-print`
+  : ... not at all; default
 
 #### hoardy-web import mitmproxy
 
@@ -2621,13 +2621,13 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `-o, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
 
-- new `--output`s printing:
-  - `--no-print`
-  : don't print anything; default
+- print paths of newly produced `--output`s:
   - `-l, --lf-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
+  : ... by terminating them with `\n` (LF) newline characters
   - `-z, --zero-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
+  : ... by terminating them with `\0` (NUL) bytes
+  - `--no-print`
+  : ... not at all; default
 
 ### hoardy-web mirror
 
@@ -2731,13 +2731,13 @@ Essentially, this subcommand is a combination of `hoardy-web organize --copy` fo
   - `-e, --expr EXPR`
   : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options below
 
-- rendering of `--expr` values:
-  - `--not-separated`
-  : render `--expr` values into outputs without separating them with anything, just concatenate them
+- render `--expr` values into `--output` files:
   - `--lf-separated`
-  : render `--expr` values into outputs separated with `\n` (LF) newline characters; default
+  : ... by separating them with `\n` (LF) newline characters; default
   - `--zero-separated`
-  : render `--expr` values into outputs separated with `\0` (NUL) bytes
+  : ... by separating them with `\0` (NUL) bytes
+  - `--not-separated`
+  : ... by simply concatenating them
 
 - default value of `--expr`:
   - `--raw-qbody`
@@ -2809,13 +2809,13 @@ Essentially, this subcommand is a combination of `hoardy-web organize --copy` fo
   - `--please-destroy-my-data`
   : permit `--overwrite` usage even when it can loose your data; **DANGEROUS!**
 
-- new `--output`s printing:
-  - `--no-print`
-  : don't print anything; default
+- print paths of newly produced/overwritten `--output`s:
   - `-l, --lf-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
+  : ... by terminating them with `\n` (LF) newline characters
   - `-z, --zero-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
+  : ... by terminating them with `\0` (NUL) bytes
+  - `--no-print`
+  : ... not at all; default
 
 - content-addressed file output mode:
   - `--copy`
@@ -3127,13 +3127,13 @@ The end.
   - `-e, --expr EXPR`
   : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options below
 
-- rendering of `--expr` values:
-  - `--not-separated`
-  : render `--expr` values into outputs without separating them with anything, just concatenate them
+- render `--expr` values into `--output` files:
   - `--lf-separated`
-  : render `--expr` values into outputs separated with `\n` (LF) newline characters; default
+  : ... by separating them with `\n` (LF) newline characters; default
   - `--zero-separated`
-  : render `--expr` values into outputs separated with `\0` (NUL) bytes
+  : ... by separating them with `\0` (NUL) bytes
+  - `--not-separated`
+  : ... by simply concatenating them
 
 - default value of `--expr`:
   - `--raw-qbody`
@@ -3171,13 +3171,13 @@ The end.
   - `-o, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
 
-- new `--output`s printing:
-  - `--no-print`
-  : don't print anything; default
+- print paths of newly produced `--output`s:
   - `-l, --lf-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
+  : ... by terminating them with `\n` (LF) newline characters
   - `-z, --zero-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
+  : ... by terminating them with `\0` (NUL) bytes
+  - `--no-print`
+  : ... not at all; default
 
 - when `--to` is set but parsing of an `HTTP`-submitted `WRR`-dump fails:
   - `--fallback`
