@@ -2772,25 +2772,29 @@ Essentially, this subcommand is a combination of `hoardy-web organize --copy` fo
   : when remapping URLs to local files, produce links and references with absolute URLs; default when `--symlink`
 
 - for each URL, mirror:
+  - `--all`
+  : ... all available reqres;
+    this is likely to take a lot of time and eat a lot of RAM!
   - `--nearest DATETIME`
-  : ... a version that is closest to the given `DATETIME` value; the `DATETIME` uses the same format as the `--before` option above (which see), except if some parts of the date are not specified, the `DATETIME` is instead parsed as a time interval and the middle point of that interval is then taken as the resulting value, e.g.:
+  : ... a reqres that is closest to the given `DATETIME` value; the `DATETIME` uses the same format as the `--before` option above (which see), except if some parts of the date are not specified, the `DATETIME` is instead parsed as a time interval and the middle point of that interval is then taken as the resulting value, e.g.:
     - `2024` becomes `2024-07-02 00:00:00` (which is the exact middle point of that year),
     - `2024-12-31` becomes `2024-12-31 12:00:00`,
     - `2024-12-31 10` becomes `2024-12-31 10:30:00`,
     - `2024-12-31 10:01` becomes `2024-12-31 10:01:30`,
     - `2024-12-31 10:01:02` becomes `2024-12-31 10:01:02.5`;
   - `--nearest-hybrid DATETIME`
-  : ... a version that is closest to the given `DATETIME` value; the `DATETIME` format is the same as above, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`
+  : ... a reqres that is closest to the given `DATETIME` value, except, for each URL that is a requisite resource, mirror a reqres that is time-closest to the referencing document; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`; the `DATETIME` format is the same as above;
+    this is likely to take a lot of time and eat a lot of RAM!
   - `--oldest`
-  : ... its oldest available version; an alias for `--nearest @-inf` (which see)
+  : ... its oldest available reqres; an alias for `--nearest @-inf` (which see)
   - `--oldest-hybrid`
-  : ... its oldest available version, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; an alias for `--nearest-hybrid @-inf` (which see)
+  : ... its oldest available reqres, except, for each URL that is a requisite resource, mirror a reqres that is time-closest to the referencing document; an alias for `--nearest-hybrid @-inf` (which see);
+    this is likely to take a lot of time and eat a lot of RAM!
   - `--latest`
-  : ... its latest available version; an alias for `--nearest @+inf` (which see); default
+  : ... its latest available reqres; an alias for `--nearest @+inf` (which see); default
   - `--latest-hybrid`
-  : ... its latest available version, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; an alias for `--nearest-hybrid @+inf` (which see)
-  - `--all`
-  : mirror all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!
+  : ... its latest available reqres, except, for each URL that is a requisite resource, mirror a reqres that is time-closest to the referencing document; an alias for `--nearest-hybrid @+inf` (which see);
+    this is likely to take a lot of time and eat a lot of RAM!
 
 - file outputs:
   - `-t, --to, --mirror-to OUTPUT_DESTINATION`
@@ -3197,19 +3201,21 @@ The end.
     thus, when setting this option to a custom value, you should probably only use the first two;
 
 - for each URL, index and replay:
+  - `--all`
+  : ... all available reqres; default;
+    this is likely to take a lot of time and eat a lot of RAM!
   - `--nearest DATETIME`
-  : ... only the visit closest to the given `DATETIME` value; if `--to` is set, each new archival will also update the index, replacing old reqres with new reqres if their `stime` is closer to `DATETIME`; the `DATETIME` uses the same format as the `--before` option above (which see), except if some parts of the date are not specified, the `DATETIME` is instead parsed as a time interval and the middle point of that interval is then taken as the resulting value, e.g.:
+  : ... a reqres that is closest to the given `DATETIME` value; the `DATETIME` uses the same format as the `--before` option above (which see), except if some parts of the date are not specified, the `DATETIME` is instead parsed as a time interval and the middle point of that interval is then taken as the resulting value, e.g.:
     - `2024` becomes `2024-07-02 00:00:00` (which is the exact middle point of that year),
     - `2024-12-31` becomes `2024-12-31 12:00:00`,
     - `2024-12-31 10` becomes `2024-12-31 10:30:00`,
     - `2024-12-31 10:01` becomes `2024-12-31 10:01:30`,
     - `2024-12-31 10:01:02` becomes `2024-12-31 10:01:02.5`;
+    if `--to` is set, each new archival will also update the index, replacing old reqres with new reqres if their `stime` is closer to `DATETIME`;
   - `--oldest`
-  : ... only the oldest visit; an alias for `--nearest @-inf` (which see)
+  : ... its oldest available reqres; an alias for `--nearest @-inf` (which see)
   - `--latest`
-  : ... only the latest visit; an alias for `--nearest @+inf` (which see)
-  - `--all`
-  : ... all available visits; if `--to` is set, each new archival will also be added to the index and made available for replay; default
+  : ... its latest available reqres; an alias for `--nearest @+inf` (which see)
   - `--no-replay`
   : disable replay functionality completely, making this instance into an archive-only server, like `hoardy-web-sas` is
 

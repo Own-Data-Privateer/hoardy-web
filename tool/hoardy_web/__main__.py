@@ -2613,7 +2613,12 @@ def cmd_serve(cargs: _t.Any) -> None:
     compression = cargs.compression
     terminator = cargs.terminator
 
-    do_replay = cargs.replay is not False
+    if cargs.mode is None:
+        do_replay = False
+        ideal = anytime.end
+    else:
+        do_replay = True
+        ideal = cargs.mode[1]
 
     inherit: str | None = None
     if len(cargs.exprs) == 0:
@@ -2653,7 +2658,7 @@ def cmd_serve(cargs: _t.Any) -> None:
     index: SortedReqresIndex = SortedDictIndex(
         key_key=url_key,
         value_key=fst,
-        ideal=cargs.replay if cargs.replay is not False else anytime.end,
+        ideal=ideal,
     )
 
     def emit[Source: DeferredSource](rrexpr: ReqresExpr[Source]) -> None:
@@ -4263,6 +4268,77 @@ however,     note that such reuse combined with `--depth` is likely to produce p
         else:
             add_terminator(cmd, "print paths of newly produced `--output`s", allow_not=False, allow_none=True)
 
+    class EmitNear(argparse.Action):
+        def __call__(
+            self,
+            parser: _t.Any,
+            cfg: argparse.Namespace,
+            value: _t.Any,
+            option_string: str | None = None,
+        ) -> None:
+            setattr(cfg, self.dest, self.const(timerange(value).middle))
+
+    near = _("... a reqres that is closest to the given `DATETIME` value")
+    oldest = _("... its oldest available reqres")
+    latest = _("... its latest available reqres")
+    hybrid = _(", except, for each URL that is a requisite resource, mirror a reqres that is time-closest to the referencing document")
+    hybrid_ie = _("; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`")
+    ram_hungry = ";\n" + _("this is likely to take a lot of time and eat a lot of RAM!")
+
+    def alias_for(s: str) -> str:
+        return _("; an alias for `%s` (which see)") % (s,)
+
+    def add_mode(cmd: _t.Any, kind: str, description: str, default: tuple[bool, TimeStamp | None]) -> None:
+        agrp = cmd.add_argument_group(description)
+        grp = agrp.add_mutually_exclusive_group()
+        is_mirror = kind == "mirror"
+        is_serve = kind == "serve"
+        warnings = ram_hungry if is_mirror or is_serve else ""
+
+        grp.add_argument("--all", dest="mode", action="store_const", const=(False, None),
+            help=(
+                _("... all available reqres")
+                + (_("; default") if is_serve else "")
+                + warnings
+            ),
+        )
+        grp.add_argument("--nearest", dest="mode", metavar="DATETIME", action=EmitNear, const=lambda x: (True, x),
+            help=(
+                near
+                + datetime_spec_middle
+                + (
+                    "\n"
+                    + _("if `--to` is set, each new archival will also update the index, replacing old reqres with new reqres if their `stime` is closer to `DATETIME`;")
+                    if is_serve
+                    else ""
+                )
+            ),
+        )
+        if is_mirror:
+            grp.add_argument("--nearest-hybrid", dest="mode", metavar="DATETIME", action=EmitNear, const=lambda x: (False, x),
+                help=near + hybrid + hybrid_ie + datetime_spec_id + warnings,
+            )
+        grp.add_argument("--oldest", dest="mode", action="store_const", const=(True, anytime.start),
+            help=oldest + alias_for("--nearest @-inf"),
+        )
+        if is_mirror:
+            grp.add_argument("--oldest-hybrid", dest="mode", action="store_const", const=(False, anytime.start),
+                help=oldest + hybrid + alias_for("--nearest-hybrid @-inf") + warnings,
+            )
+        grp.add_argument("--latest", dest="mode", action="store_const", const=(True, anytime.end),
+            help=latest + alias_for("--nearest @+inf") + (_("; default") if is_mirror else ""),
+        )
+        if is_mirror:
+            grp.add_argument("--latest-hybrid", dest="mode", action="store_const", const=(False, anytime.end),
+                help=latest + hybrid + alias_for("--nearest-hybrid @+inf") + warnings,
+            )
+        if is_serve:
+            grp.add_argument("--no-replay", dest="mode", action="store_const", const=None,
+                help=_("disable replay functionality completely, making this instance into an archive-only server, like `hoardy-web-sas` is"),
+            )
+
+        cmd.set_defaults(mode=default)
+
     # organize
     cmd = subparsers.add_parser("organize",
         help=_("programmatically copy/rename/move/hardlink/symlink given input files based on their metadata and/or contents"),
@@ -4380,50 +4456,8 @@ Essentially, this subcommand is a combination of `{__prog__} organize --copy` fo
     add_common(cmd, "mirror", "consider reqres for mirroring when")
     add_expr(cmd, "mirror")
 
-    agrp = cmd.add_argument_group("for each URL, mirror")
-    grp = agrp.add_mutually_exclusive_group()
-
-    near = _("... a version that is closest to the given `DATETIME` value")
-    oldest = _("... its oldest available version")
-    latest = _("... its latest available version")
-    hybrid = _(", except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document")
-    hybrid_ie = _("; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`")
-
-    def alias_for(s: str) -> str:
-        return _("; an alias for `%s` (which see)") % (s,)
-
-    class EmitNear(argparse.Action):
-        def __call__(
-            self,
-            parser: _t.Any,
-            cfg: argparse.Namespace,
-            value: _t.Any,
-            option_string: str | None = None,
-        ) -> None:
-            setattr(cfg, self.dest, self.const(timerange(value).middle))
-
-    grp.add_argument("--nearest", dest="mode", metavar="DATETIME", action=EmitNear, const=lambda x: (True, x),
-        help=near + datetime_spec_middle,
-    )
-    grp.add_argument("--nearest-hybrid", dest="mode", metavar="DATETIME", action=EmitNear, const=lambda x: (False, x),
-        help=near + datetime_spec_id + hybrid + hybrid_ie,
-    )
-    grp.add_argument("--oldest", dest="mode", action="store_const", const=(True, anytime.start),
-        help=oldest + alias_for("--nearest @-inf"),
-    )
-    grp.add_argument("--oldest-hybrid", dest="mode", action="store_const", const=(False, anytime.start),
-        help=oldest + hybrid + alias_for("--nearest-hybrid @-inf"),
-    )
-    grp.add_argument("--latest", dest="mode", action="store_const", const=(True, anytime.end),
-        help=latest + alias_for("--nearest @+inf") + _("; default"),
-    )
-    grp.add_argument("--latest-hybrid", dest="mode", action="store_const", const=(False, anytime.end),
-        help=latest + hybrid + alias_for("--nearest-hybrid @+inf"),
-    )
-    grp.add_argument("--all", dest="mode", action="store_const", const=(False, None),
-        help=_("mirror all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!"),
-    )
-    cmd.set_defaults(mode=(True, anytime.end))  # `--latest`
+    # `--latest` is the default
+    add_mode(cmd, "mirror", "for each URL, mirror", (True, anytime.end))
 
     add_fileout(cmd, "mirror")
 
@@ -4556,25 +4590,8 @@ since this value will be evaluated with without an associated reqres, the follow
 thus, when setting this option to a custom value, you should probably only use the first two;"""),
     )
 
-    agrp = cmd.add_argument_group("for each URL, index and replay")
-    grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("--nearest", dest="replay", metavar="DATETIME", action=EmitNear, const=lambda x: x,
-        help=_("... only the visit closest to the given `DATETIME` value; if `--to` is set, each new archival will also update the index, replacing old reqres with new reqres if their `stime` is closer to `DATETIME`")
-        + datetime_spec_middle,
-    )
-    grp.add_argument("--oldest", dest="replay", action="store_const", const=anytime.start,
-        help=_("... only the oldest visit") + alias_for("--nearest @-inf"),
-    )
-    grp.add_argument("--latest", dest="replay", action="store_const", const=anytime.end,
-        help=_("... only the latest visit") + alias_for("--nearest @+inf"),
-    )
-    grp.add_argument("--all", dest="replay", action="store_const", const=None,
-        help=_("... all available visits; if `--to` is set, each new archival will also be added to the index and made available for replay; default"),
-    )
-    grp.add_argument("--no-replay", dest="replay", action="store_false",
-        help=_("disable replay functionality completely, making this instance into an archive-only server, like `hoardy-web-sas` is"),
-    )
-    cmd.set_defaults(replay=None)  # --all
+    # `--all` is the default
+    add_mode(cmd, "serve", "for each URL, index and replay", (False, None))
 
     agrp = cmd.add_argument_group("replay how")
 
