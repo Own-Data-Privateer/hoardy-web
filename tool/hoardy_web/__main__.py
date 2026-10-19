@@ -293,6 +293,8 @@ def load_and_emit[AnyStr: (
         try:
             if follow_symlinks:
                 abs_path = _op.realpath(abs_path)
+            elif _op.islink(abs_path):
+                raise Failure("input file is a symlink, but symlink inputs are forbidden")
 
             if (
                 seen_paths is not None
@@ -1925,6 +1927,8 @@ def cmd_organize(cargs: _t.Any) -> None:
     if cargs.walk_fs is None:
         cargs.walk_fs = WalkOrder.REVERSE if ideal == anytime.end else WalkOrder.SORT
 
+    follow_symlinks = cargs.action != "move"
+
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
@@ -1937,7 +1941,14 @@ def cmd_organize(cargs: _t.Any) -> None:
             cargs, _op.expanduser(cargs.destination), output_format, ideal, allow_updates
         )
         try:
-            load_and_emit_many(cargs, rrexprs_load, filters_allow, emit, cargs.paths)
+            load_and_emit_many(
+                cargs,
+                rrexprs_load,
+                filters_allow,
+                emit,
+                cargs.paths,
+                follow_symlinks=follow_symlinks,
+            )
         finally:
             finish()
     elif allow_updates:
@@ -1956,7 +1967,14 @@ def cmd_organize(cargs: _t.Any) -> None:
         for exp_path in cargs.paths:
             emit, finish = make_organize_emit(cargs, exp_path, output_format, ideal, False)
             try:
-                load_and_emit_many(cargs, rrexprs_load, filters_allow, emit, [exp_path])
+                load_and_emit_many(
+                    cargs,
+                    rrexprs_load,
+                    filters_allow,
+                    emit,
+                    [exp_path],
+                    follow_symlinks=follow_symlinks,
+                )
             finally:
                 finish()
 
@@ -4343,19 +4361,26 @@ E.g., the default `{__prog__} organize --move` will not overwrite any files, whi
     add_impure(cmd)
     add_common(cmd, "organize", "organize reqres when")
 
+    follow_all = ";\n" + _("all symlinks will be followed")
+
     agrp = cmd.add_argument_group("action")
     grp = agrp.add_mutually_exclusive_group()
     grp.add_argument("--move", dest="action", action="store_const", const="move",
-        help=_("move source files under `OUTPUT_DESTINATION`; default"),
+        help=(
+            _("move source files to their new paths under `OUTPUT_DESTINATION`; default")
+            + ";\n"
+            + _("""symlinks to directories among and inside the given `INPUT`s won't be followed;
+source files that are themselves symlinks will generate errors""")
+        ),
     )
     grp.add_argument("--copy", dest="action", action="store_const", const="copy",
-        help=_("copy source files to files under `OUTPUT_DESTINATION`"),
+        help=_("copy source files to paths under `OUTPUT_DESTINATION`") + follow_all,
     )
     grp.add_argument("--hardlink", dest="action", action="store_const", const="hardlink",
-        help=_("create hardlinks from source files to paths under `OUTPUT_DESTINATION`"),
+        help=_("create hardlinks from source files to paths under `OUTPUT_DESTINATION`") + follow_all,
     )
     grp.add_argument("--symlink", dest="action", action="store_const", const="symlink",
-        help=_("create symlinks from source files to paths under `OUTPUT_DESTINATION`"),
+        help=_("create symlinks from source files to paths under `OUTPUT_DESTINATION`") + follow_all,
     )
     cmd.set_defaults(action="move")
 

@@ -1878,13 +1878,18 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
 
 - action:
   - `--move`
-  : move source files under `OUTPUT_DESTINATION`; default
+  : move source files to their new paths under `OUTPUT_DESTINATION`; default;
+    symlinks to directories among and inside the given `INPUT`s won't be followed;
+    source files that are themselves symlinks will generate errors
   - `--copy`
-  : copy source files to files under `OUTPUT_DESTINATION`
+  : copy source files to paths under `OUTPUT_DESTINATION`;
+    all symlinks will be followed
   - `--hardlink`
-  : create hardlinks from source files to paths under `OUTPUT_DESTINATION`
+  : create hardlinks from source files to paths under `OUTPUT_DESTINATION`;
+    all symlinks will be followed
   - `--symlink`
-  : create symlinks from source files to paths under `OUTPUT_DESTINATION`
+  : create symlinks from source files to paths under `OUTPUT_DESTINATION`;
+    all symlinks will be followed
 
 - file outputs:
   - `-t, --to, --organize-to OUTPUT_DESTINATION`
