@@ -1508,10 +1508,10 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
     defer: bool = cargs.defer
 
     actioning_new = gettext(actioning)
-    removing = gettext("removing")
+    removing_dup = gettext("removing duplicate")
     if dry_run:
         actioning_new = gettext("dry-run: (not)") + " " + actioning_new
-        removing = gettext("dry-run: (not)") + " " + removing
+        removing_dup = gettext("dry-run: (not)") + " " + removing_dup
     actioning_over = actioning_new + " " + gettext("(overwrite)")
 
     ftype: int = _stat.S_IFLNK if symlink else _stat.S_IFREG
@@ -1520,7 +1520,9 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
         updated: int = 0
 
     updated_files: list[AnyStr] = []
-    remove_files: list[FileSource] = []
+
+    RemoveFileSource = tuple[FileSource, bool]
+    remove_files: list[RemoveFileSource] = []
 
     max_cache: int = cargs.cache
     max_batch = cargs.batch
@@ -1535,13 +1537,14 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
         flush_sync = noop
 
     # a `list` of sources that need to be removed after this operation gets synced to disk
-    ToRemove = list[DeferredSource] | None
+    ToRemove = list[tuple[DeferredSource, bool]] | None
 
     def queue_to_remove(path: AnyStr, to_remove: ToRemove) -> None:
         if to_remove is not None:
-            for src in to_remove:
+            for el in to_remove:
+                src, _report = el
                 if isinstance(src, FileSource):
-                    remove_files.append(src)
+                    remove_files.append(_t.cast(RemoveFileSource, el))
                 else:
                     mem.consumption -= src.approx_size()
                     issue = Failure("don't know to remove the source, keeping it as-is").elaborate(
@@ -1646,12 +1649,12 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
                 updated_files.clear()
 
             if remove_files:
-                for src in remove_files:
+                for src, report in remove_files:
                     mem.consumption -= src.approx_size()
                     epath = src.path
 
-                    if not quiet:
-                        stderr.write_str(removing)
+                    if not quiet and report:
+                        stderr.write_str(removing_dup)
                         stderr.write_str(": `")
                         stderr.write(epath)
                         stderr.write_str_ln("`")
@@ -1805,7 +1808,9 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
                     # mark `new_source` for removal
                     if to_remove is None:
                         to_remove = []
-                    to_remove.append(new_source)
+                    # NB: setting `report = is_noop` so that only the noop-related removals would be
+                    # reported separately, the others reported as part of "{actioning} `%s` -> `%s`"
+                    to_remove.append((new_source, is_noop))
                     mem.consumption += new_source.approx_size()
 
                 if is_noop:
@@ -1865,7 +1870,7 @@ def make_organize_emit[Source: DeferredSource, AnyStr: (
     symlink = False
 
     if action == "move":
-        actioning = "cloning"
+        actioning = "moving"
         subaction_op = link_or_clone_file
         remove = True
     elif action == "copy":
