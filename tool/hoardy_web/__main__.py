@@ -1964,10 +1964,12 @@ def cmd_organize(cargs: _t.Any) -> None:
             try:
                 path_stat = _os.stat(exp_path)
             except FileNotFoundError as exc:
-                raise Failure("`%s` does not exist", exp_path) from exc
+                raise Failure("`%s` does not exist", fsdecode(exp_path)) from exc
 
             if not _stat.S_ISDIR(path_stat.st_mode):
-                raise Failure("`%s` is not a directory but no `--to` is specified", exp_path)
+                raise Failure(
+                    "`%s` is not a directory but no `--to` is specified", fsdecode(exp_path)
+                )
 
         for exp_path in cargs.paths:
             emit, finish = make_organize_emit(cargs, exp_path, output_format, ideal, False)
