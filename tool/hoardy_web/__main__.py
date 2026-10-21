@@ -215,7 +215,7 @@ def elaborate_output(kind: str, aliases: dict[str, str], value: str) -> str:
 
 def elaborate_paths(paths: list[str | bytes]) -> None:
     for i, p in enumerate(paths):
-        paths[i] = _op.expanduser(p)
+        paths[i] = _op.abspath(_op.expanduser(p))
 
 
 def handle_paths(cargs: _t.Any) -> None:
