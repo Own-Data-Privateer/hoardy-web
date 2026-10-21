@@ -1894,6 +1894,9 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
 - file outputs:
   - `-t, --to, --organize-to OUTPUT_DESTINATION`
   : destination directory; when unset, each source `PATH` must be a directory which will be treated as its own `OUTPUT_DESTINATION`
+  - `--to-one-of, --organize-to-one-of PATH [PATH ...]`
+  : for each given `PATH` derive its corresponding `--to` automatically by selecting its closest ancestor from one of the give values (if this is a last option before the `PATH`s, you'll have to add an `--` after it for this to work);
+    thus, e.g., `hoardy-web organize --to-one-of ~/hoardy-web/raw/* -- ~/hoardy-web/raw/*/2024/01` would be equivalent to `for a in default background extension etc; do hoardy-web organize --to ~/hoardy-web/raw/$a -- ~/hoardy-web/raw/$a/2024/01; done`, except `--to-one-of` it would also work with `--stdin0` and such
   - `-o, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:

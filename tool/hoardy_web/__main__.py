@@ -17,6 +17,7 @@
 
 """`main()`."""
 
+import collections as _c
 import dataclasses as _dc
 import errno as _errno
 import hashlib as _hashlib
@@ -1956,8 +1957,55 @@ def cmd_organize(cargs: _t.Any) -> None:
             )
         finally:
             finish()
+    elif cargs.possible_destinations is not None:
+        # `--to-one-of`
+        for i, dirname in enumerate(cargs.possible_destinations):
+            cargs.possible_destinations[i] = dirname = _op.abspath(_op.expanduser(dirname))
+            try:
+                path_stat = _os.stat(dirname)
+            except FileNotFoundError as exc:
+                raise Failure("`%s` does not exist", fsdecode(dirname)) from exc
+            if not _stat.S_ISDIR(path_stat.st_mode):
+                raise Failure("`%s` is not a directory", fsdecode(dirname))
+
+        groups: _c.defaultdict[str, list[str]] = _c.defaultdict(list)
+
+        for path in cargs.paths:
+            path = fsdecode(path)
+
+            # find best-matching `--to-one-of` argument
+            best_match = 0
+            best_dirname = None
+            for dirname in cargs.possible_destinations:
+                try:
+                    match = len(_op.commonpath((dirname, path)))
+                except ValueError:
+                    match = 0
+                if match > best_match:
+                    best_match = match
+                    best_dirname = dirname
+
+            if best_dirname is None:
+                raise Failure("`%s` has no corresponding `--to-one-of` ancestors", fsdecode(path))
+
+            # record the decision
+            groups[best_dirname].append(path)
+
+        for dirname, paths in groups.items():
+            emit, finish = make_organize_emit(cargs, dirname, output_format, ideal, False)
+            try:
+                load_and_emit_many(
+                    cargs,
+                    rrexprs_load,
+                    filters_allow,
+                    emit,
+                    paths,
+                    follow_symlinks=follow_symlinks,
+                )
+            finally:
+                finish()
     elif allow_updates:
-        raise Failure("`--to` is required when running with `--overwrite`")
+        raise Failure("`--to` or `--to-one-of` is required when running with `--overwrite`")
     else:
         # each path is its own destination
         for exp_path in cargs.paths:
@@ -4179,8 +4227,13 @@ note that this option being set does note imply that the resulting file system o
         agrp = cmd.add_argument_group("file outputs")
 
         if kind == "organize":
-            agrp.add_argument("-t", "--to", f"--{kind}-to", dest="destination", metavar="OUTPUT_DESTINATION", type=str,
+            grp = agrp.add_mutually_exclusive_group()
+            grp.add_argument("-t", "--to", f"--{kind}-to", dest="destination", metavar="OUTPUT_DESTINATION", type=str,
                 help=_("destination directory; when unset, each source `PATH` must be a directory which will be treated as its own `OUTPUT_DESTINATION`"),
+            )
+            grp.add_argument("--to-one-of", f"--{kind}-to-one-of", dest="possible_destinations", nargs="+", metavar="PATH", type=str,
+                help=_(f"""for each given `PATH` derive its corresponding `--to` automatically by selecting its closest ancestor from one of the give values (if this is a last option before the `PATH`s, you'll have to add an `--` after it for this to work);
+thus, e.g., `{__prog__} organize --to-one-of ~/hoardy-web/raw/* -- ~/hoardy-web/raw/*/2024/01` would be equivalent to `for a in default background extension etc; do {__prog__} organize --to ~/hoardy-web/raw/$a -- ~/hoardy-web/raw/$a/2024/01; done`, except `--to-one-of` it would also work with `--stdin0` and such"""),
             )
             agrp.add_argument("-o", "--output", metavar="OUTPUT_FORMAT", default="default", type=str,
                 help=_("""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""")
