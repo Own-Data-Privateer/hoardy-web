@@ -69,6 +69,7 @@
 <li><a href="#development-.test-tool.sh---help---set-tag-tag---wine---all--subset-num---long--short-num---include-target---exclude-target---keep-path-path-..." id="toc-development-.test-tool.sh---help---set-tag-tag---wine---all--subset-num---long--short-num---include-target---exclude-target---keep-path-path-...">Development: <code>./test-tool.sh [--help] [--set-tag TAG] [--wine] [--all|--subset NUM] [--long|--short NUM] [--include TARGET]* [--exclude TARGET]* [--keep] PATH [PATH ...]</code></a>
 <ul>
 <li><a href="#examples-1" id="toc-examples-1">Examples</a></li>
+<li><a href="#preparing-inputs-for-this-script" id="toc-preparing-inputs-for-this-script">Preparing inputs for this script</a></li>
 </ul></li>
 </ul>
 </details>
@@ -2425,6 +2426,8 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
   : ... updated/removed `INPUT` files; will only produce an effect when running with `--move`
   - `--print-updated`
   : ... both of the above
+  - `--print-remap`
+  : ... each resulting `--output` file; this option is named this way because in combination with `--stdin0`, effectively, it remaps each given input path to its corresponding output path, which is most useful in combination with `--move` and/or `--dry-run`
   - `--no-print`
   : ... nothing at all; default
 
@@ -3437,9 +3440,17 @@ Sanity check and test `hoardy-web` command-line interface.
   ./test-tool.sh --short 16 ~/Downloads/Hoardy-Web-export-*.wrrb
   ```
 
+## Preparing inputs for this script
+
 - Make an `--stdin0` input and test on it, as if it was a WRR bundle:
 
   ```
   hoardy-web find -z ~/hoardy-web/latest/archiveofourown.org ~/hoardy-web/latest/example.org > ./bunch.wrrtest
   ./test-tool.sh ./bunch.wrrtest
+  ```
+
+- Update the contents of a `*.wrrtest` file under `hoardy-web organize --move`:
+
+  ```
+  hoardy-web organize --quiet --dry-run --zero-terminated --print-remap --move --to-one-of ~/hoardy-web/raw/* --stdin0 < ./bunch.wrrtest > ./bunch.wrrtest.new
   ```

@@ -36,11 +36,19 @@ Sanity check and test \`hoardy-web\` command-line interface.
   $0 --short 16 ~/Downloads/Hoardy-Web-export-*.wrrb
   \`\`\`
 
+## Preparing inputs for this script
+
 - Make an \`--stdin0\` input and test on it, as if it was a WRR bundle:
 
   \`\`\`
   hoardy-web find -z ~/hoardy-web/latest/archiveofourown.org ~/hoardy-web/latest/example.org > ./bunch.wrrtest
   $0 ./bunch.wrrtest
+  \`\`\`
+
+- Update the contents of a \`*.wrrtest\` file under \`hoardy-web organize --move\`:
+
+  \`\`\`
+  hoardy-web organize --quiet --dry-run --zero-terminated --print-remap --move --to-one-of ~/hoardy-web/raw/* --stdin0 < ./bunch.wrrtest > ./bunch.wrrtest.new
   \`\`\`
 EOF
 }

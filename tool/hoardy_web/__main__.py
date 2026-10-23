@@ -1505,6 +1505,7 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
     dry_run: bool = cargs.dry_run
     quiet: bool = cargs.quiet
     print_inputs = print_outputs = cargs.print is True
+    print_remap = cargs.print == "remap"
     if cargs.print == "inputs":
         print_inputs = True
     if cargs.print == "outputs":
@@ -1712,6 +1713,10 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
                 # NB: this is a hot evaluation path of `organize --to src src` and similar
                 # subcommands, which is why we do this check early instead of delegating this to
                 # (sameSourceOrData) block
+                if print_remap:
+                    stdout.write(abs_out_path)
+                    stdout.write_bytes(terminator)
+                    stdout.flush()
                 return
 
             new_rrexpr.values["num"] += 1
@@ -1816,6 +1821,11 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
                             is_noop = True
                     elif not can_overwrite:
                         continue
+
+                if print_remap:
+                    stdout.write(abs_out_path)
+                    stdout.write_bytes(terminator)
+                    stdout.flush()
 
                 if remove:
                     # mark `new_source` for removal
@@ -4332,6 +4342,9 @@ however,     note that such reuse combined with `--depth` is likely to produce p
             )
             grp.add_argument("--print-updated", dest="print", action="store_true",
                 help=_("... both of the above"),
+            )
+            grp.add_argument("--print-remap", dest="print", action="store_const", const="remap",
+                help=_("... each resulting `--output` file; this option is named this way because in combination with `--stdin0`, effectively, it remaps each given input path to its corresponding output path, which is most useful in combination with `--move` and/or `--dry-run`"),
             )
         else:
             grp.add_argument("--print-updated", "--print-updated-outputs", dest="print", action="store_true",
