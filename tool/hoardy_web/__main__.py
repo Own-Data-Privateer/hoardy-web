@@ -1504,7 +1504,12 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
 
     dry_run: bool = cargs.dry_run
     quiet: bool = cargs.quiet
-    terminator: bytes | None = None if dry_run else cargs.terminator
+    print_inputs = print_outputs = cargs.print is True
+    if cargs.print == "inputs":
+        print_inputs = True
+    if cargs.print == "outputs":
+        print_outputs = True
+    terminator: bytes = cargs.terminator
     lazy: bool = cargs.lazy if cargs.lazy is not None else dry_run
     defer: bool = cargs.defer
 
@@ -1596,7 +1601,7 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
         else:
             Mutable.updated += 1
 
-            if terminator is not None:
+            if print_outputs:
                 updated_files.append(path)
                 mem.consumption += len(path)
 
@@ -1640,8 +1645,7 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
 
             Mutable.updated = 0
 
-            if terminator is not None:
-                # report to stdout
+            if print_outputs:
                 for path in updated_files:
                     mem.consumption -= len(path)
                     stdout.write(path)
@@ -1667,9 +1671,17 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
                         except (FileExistsError, FileNotFoundError):
                             issue = Failure("`%s` changed between accesses", fsdecode(epath))
                             log_exception_warning(issue)
-                remove_files.clear()
 
                 flush_sync()
+
+                if print_inputs:
+                    for src, _report in remove_files:
+                        epath = src.path
+                        stdout.write(epath)
+                        stdout.write_bytes(terminator)
+                    stdout.flush()
+
+                remove_files.clear()
 
     def emit(new_rrexpr: ReqresExpr[Source]) -> None:
         raise_first_delayed_signal()
@@ -2651,7 +2663,8 @@ def cmd_serve(cargs: _t.Any) -> None:
 
     fallback = cargs.fallback
     compression = cargs.compression
-    terminator = cargs.terminator
+    print_outputs: bool = cargs.print
+    terminator: bytes = cargs.terminator
 
     if cargs.mode is None:
         do_replay = False
@@ -2975,7 +2988,7 @@ def cmd_serve(cargs: _t.Any) -> None:
             stderr.write_str_ln(gettext("fallback-archived something -> %s") % (abs_out_path,))
         stderr.flush()
 
-        if terminator is not None:
+        if print_outputs:
             stdout.write(abs_out_path)
             stdout.write_bytes(terminator)
             stdout.flush()
@@ -3704,48 +3717,36 @@ if other parts of the date are not specified, they get substituted from `<year>-
     def add_termsep(
         cmd: _t.Any,
         name: str,
-        what: str = "print `--expr` values",
-        allow_not: bool = True,
-        allow_none: bool = False,
+        what: str,
         short: bool = True,
+        default: bytes = b"\n",
+        allow_not: bool = False,
     ) -> None:
         agrp = cmd.add_argument_group(what)
         grp = agrp.add_mutually_exclusive_group()
-
         def_def = "; " + _("default")
-        def_val: bytes | None
-        if allow_none:
-            def_lf = ""
-            def_val = None
-        else:
-            def_lf = def_def
-            def_val = b"\n"
 
         grp.add_argument(*optlist(short, "-l"), f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const=b"\n",
-            help=_(f"... by {name}ating them with `\\n` (LF) newline characters") + def_lf,
+            help=_(f"... by {name}ating them with `\\n` (LF) newline characters") + (def_def if default == b"\n" else ""),
         )
         grp.add_argument(*optlist(short, "-z"), f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const=b"\0",
-            help=_(f"... by {name}ating them with `\\0` (NUL) bytes"),
+            help=_(f"... by {name}ating them with `\\0` (NUL) bytes") + (def_def if default == b"\0" else ""),
         )
         if allow_not:
             grp.add_argument(f"--not-{name}ated", dest=f"{name}ator", action="store_const", const=b"",
                 help=_("... by simply concatenating them"),
             )
-        if allow_none:
-            grp.add_argument("--no-print", dest=f"{name}ator", action="store_const", const=None,
-                help=_("... not at all") + def_def,
-            )
 
         if name == "termin":
-            cmd.set_defaults(terminator=def_val)
+            cmd.set_defaults(terminator=default)
         elif name == "separ":
-            cmd.set_defaults(separator=def_val)
+            cmd.set_defaults(separator=default)
 
     def add_terminator(cmd: _t.Any, *args: _t.Any, **kwargs: _t.Any) -> None:
         add_termsep(cmd, "termin", *args, **kwargs)
 
-    def add_separator(cmd: _t.Any, *args: _t.Any, **kwargs: _t.Any) -> None:
-        add_termsep(cmd, "separ", *args, **kwargs)
+    def add_separator(cmd: _t.Any, *args: _t.Any, allow_not: bool = True, **kwargs: _t.Any) -> None:
+        add_termsep(cmd, "separ", *args, allow_not=allow_not, **kwargs)  # type: ignore
 
     def add_paths(cmd: _t.Any, kind: str) -> None:
         def_paths: WalkOrder | None
@@ -3957,13 +3958,13 @@ if other parts of the date are not specified, they get substituted from `<year>-
             )
 
         if kind == "stream":
-            add_terminator(cmd, "print `--format=raw` `--expr` output values")
+            add_terminator(cmd, "print `--format=raw` `--expr` output values", allow_not=True)
             cmd.set_defaults(default_expr="dot")
         elif kind in ("mirror", "serve"):
             add_separator(cmd, "render `--expr` values into `--output` files", short=False)
             cmd.set_defaults(default_expr="all")
         else:
-            add_separator(cmd)
+            add_separator(cmd, "print `--expr` values")
             cmd.set_defaults(default_expr="raw_sbody")
 
         def alias(what: str) -> str:
@@ -4159,7 +4160,7 @@ The end.
     )
     add_pure(cmd)
     add_common(cmd, "find", "print path of reqres when")
-    add_terminator(cmd, "print paths of matching `WRR` files", allow_not=False)
+    add_terminator(cmd, "print paths of matching `WRR` files")
     cmd.set_defaults(sniff=SniffContentType.NONE)
     cmd.set_defaults(func=cmd_find)
 
@@ -4319,9 +4320,29 @@ however,     note that such reuse combined with `--depth` is likely to produce p
                 help=_("permit `--overwrite` usage even when it can loose your data; **DANGEROUS!**"),
             )
 
-            add_terminator(cmd, "print paths of newly produced/overwritten `--output`s", allow_not=False, allow_none=True)
+        agrp = cmd.add_argument_group("to stdout, print paths of")
+        grp = agrp.add_mutually_exclusive_group()
+
+        if kind == "organize":
+            grp.add_argument("--print-updated-outputs", dest="print", action="store_const", const="outputs",
+                help=_("... newly generated/updated `--output` files"),
+            )
+            grp.add_argument("--print-updated-inputs", dest="print", action="store_const", const="inputs",
+                help=_("... updated/removed `INPUT` files; will only produce an effect when running with `--move`"),
+            )
+            grp.add_argument("--print-updated", dest="print", action="store_true",
+                help=_("... both of the above"),
+            )
         else:
-            add_terminator(cmd, "print paths of newly produced `--output`s", allow_not=False, allow_none=True)
+            grp.add_argument("--print-updated", "--print-updated-outputs", dest="print", action="store_true",
+                help=_("... newly generated/updated `--output` files"),
+            )
+        grp.add_argument("--no-print", dest="print", action="store_false",
+            help=_("... nothing at all") + "; " + _("default"),
+        )
+        cmd.set_defaults(print=False)
+
+        add_terminator(cmd, "print those paths")
 
     class EmitNear(argparse.Action):
         def __call__(

@@ -2418,13 +2418,21 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
   - `--please-destroy-my-data`
   : permit `--overwrite` usage even when it can loose your data; **DANGEROUS!**
 
-- print paths of newly produced/overwritten `--output`s:
+- to stdout, print paths of:
+  - `--print-updated-outputs`
+  : ... newly generated/updated `--output` files
+  - `--print-updated-inputs`
+  : ... updated/removed `INPUT` files; will only produce an effect when running with `--move`
+  - `--print-updated`
+  : ... both of the above
+  - `--no-print`
+  : ... nothing at all; default
+
+- print those paths:
   - `-l, --lf-terminated`
-  : ... by terminating them with `\n` (LF) newline characters
+  : ... by terminating them with `\n` (LF) newline characters; default
   - `-z, --zero-terminated`
   : ... by terminating them with `\0` (NUL) bytes
-  - `--no-print`
-  : ... not at all; default
 
 - into each `--output` path, write:
   - `--all`
@@ -2548,13 +2556,17 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   - `-o, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
 
-- print paths of newly produced `--output`s:
+- to stdout, print paths of:
+  - `--print-updated, --print-updated-outputs`
+  : ... newly generated/updated `--output` files
+  - `--no-print`
+  : ... nothing at all; default
+
+- print those paths:
   - `-l, --lf-terminated`
-  : ... by terminating them with `\n` (LF) newline characters
+  : ... by terminating them with `\n` (LF) newline characters; default
   - `-z, --zero-terminated`
   : ... by terminating them with `\0` (NUL) bytes
-  - `--no-print`
-  : ... not at all; default
 
 #### hoardy-web import mitmproxy
 
@@ -2644,13 +2656,17 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `-o, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
 
-- print paths of newly produced `--output`s:
+- to stdout, print paths of:
+  - `--print-updated, --print-updated-outputs`
+  : ... newly generated/updated `--output` files
+  - `--no-print`
+  : ... nothing at all; default
+
+- print those paths:
   - `-l, --lf-terminated`
-  : ... by terminating them with `\n` (LF) newline characters
+  : ... by terminating them with `\n` (LF) newline characters; default
   - `-z, --zero-terminated`
   : ... by terminating them with `\0` (NUL) bytes
-  - `--no-print`
-  : ... not at all; default
 
 ### hoardy-web mirror
 
@@ -2836,13 +2852,17 @@ Essentially, this subcommand is a combination of `hoardy-web organize --copy` fo
   - `--please-destroy-my-data`
   : permit `--overwrite` usage even when it can loose your data; **DANGEROUS!**
 
-- print paths of newly produced/overwritten `--output`s:
+- to stdout, print paths of:
+  - `--print-updated, --print-updated-outputs`
+  : ... newly generated/updated `--output` files
+  - `--no-print`
+  : ... nothing at all; default
+
+- print those paths:
   - `-l, --lf-terminated`
-  : ... by terminating them with `\n` (LF) newline characters
+  : ... by terminating them with `\n` (LF) newline characters; default
   - `-z, --zero-terminated`
   : ... by terminating them with `\0` (NUL) bytes
-  - `--no-print`
-  : ... not at all; default
 
 - content-addressed file output mode:
   - `--copy`
@@ -3198,13 +3218,17 @@ The end.
   - `-o, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
 
-- print paths of newly produced `--output`s:
+- to stdout, print paths of:
+  - `--print-updated, --print-updated-outputs`
+  : ... newly generated/updated `--output` files
+  - `--no-print`
+  : ... nothing at all; default
+
+- print those paths:
   - `-l, --lf-terminated`
-  : ... by terminating them with `\n` (LF) newline characters
+  : ... by terminating them with `\n` (LF) newline characters; default
   - `-z, --zero-terminated`
   : ... by terminating them with `\0` (NUL) bytes
-  - `--no-print`
-  : ... not at all; default
 
 - when `--to` is set but parsing of an `HTTP`-submitted `WRR`-dump fails:
   - `--fallback`
