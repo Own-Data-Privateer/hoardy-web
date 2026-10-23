@@ -1498,7 +1498,8 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
     remove: bool,
     symlink: bool,
     ideal: TimeStamp | None,
-    allow_updates: bool,
+    # `allow_updates is None` means `--keep-duplicates`
+    allow_updates: bool | None,
 ) -> tuple[_t.Callable[[ReqresExpr[Source]], None], _t.Callable[[], None]]:
     """Wrap `action_op` with optional caching, operation deferring, stdio reporting, etc."""
 
@@ -1736,7 +1737,7 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
             old_reqres: Reqres
             dirty: bool = False
             to_remove: ToRemove = None
-            can_overwrite: bool = allow_updates
+            can_overwrite: bool = bool(allow_updates)
             overwrite: Overwrite
 
             try:
@@ -1752,6 +1753,9 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
                         handle_ENAMETOOLONG(exc, abs_out_path)
                         raise
                     else:
+                        if allow_updates is None:
+                            continue
+
                         out_ftype = _stat.S_IFMT(out_stat.st_mode)
                         if out_ftype != ftype:
                             issue = Failure(
@@ -1796,6 +1800,9 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
                             mem.consumption += len(abs_out_path) + old_source.approx_size() + old_reqres.approx_size()  # fmt: skip
                             have_old = True
                 else:
+                    if allow_updates is None:
+                        continue
+
                     cache.move_to_end(abs_out_path)
                     if old is None:
                         # ignored path
@@ -1884,7 +1891,7 @@ def make_organize_emit[Source: DeferredSource, AnyStr: (
     destination: AnyStr,
     output_format: AnyStr,
     ideal: TimeStamp | None,
-    allow_updates: bool,
+    allow_updates: bool | None,
 ) -> tuple[_t.Callable[[ReqresExpr[Source]], None], _t.Callable[[], None]]:
     action = cargs.action
     actioning = action + "ing"
@@ -1943,7 +1950,7 @@ def cmd_organize(cargs: _t.Any) -> None:
     ideal: TimeStamp | None = cargs.mode[1]
 
     allow_updates_is_safe = cargs.action == "symlink" and ideal is not None
-    allow_updates: bool | Missing = cargs.allow_updates
+    allow_updates: bool | None | Missing = cargs.allow_updates
     if isinstance(allow_updates, Missing):
         allow_updates = allow_updates_is_safe
 
@@ -4297,6 +4304,10 @@ thus, e.g., `{__prog__} organize --to-one-of ~/hoardy-web/raw/* -- ~/hoardy-web/
             def_skip = _("skip overwrites of existing files under `OUTPUT_DESTINATION` while skipping duplicated inputs/outputs")
 
             if kind == "organize":
+                grp.add_argument("--keep-duplicates", dest="allow_updates", action="store_const", const=None,
+                    help= _("""map each input reqres to its own `--output` path under `OUTPUT_DESTINATION`, thus keeping all duplicated reqres as-is;
+the `--o    utput` format must include the `num` substitution for this to work"""),
+                )
                 grp.add_argument("--skip-existing", "--no-overwrite", dest="allow_updates", action="store_false",
                     help=(
                         def_skip

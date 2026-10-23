@@ -2408,6 +2408,9 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
       - `num`: number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique
 
 - updates to `--output`s:
+  - `--keep-duplicates`
+  : map each input reqres to its own `--output` path under `OUTPUT_DESTINATION`, thus keeping all duplicated reqres as-is;
+    the `--o    utput` format must include the `num` substitution for this to work
   - `--skip-existing, --no-overwrite`
   : skip overwrites of existing files under `OUTPUT_DESTINATION` while skipping duplicated inputs/outputs; default unless `--overwrite` is;
     when running with `--symlink`, `--output` destinations that are broken symlinks will be considered to be non-existent and will processed as if `--overwrite` was set for those destination paths;
