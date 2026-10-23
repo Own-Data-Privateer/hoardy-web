@@ -573,9 +573,11 @@ def cmd_stream(cargs: _t.Any) -> None:
 
 
 def cmd_find(cargs: _t.Any) -> None:
+    terminator = cargs.terminator
+
     def emit[Source: DeferredSource](rrexpr: ReqresExpr[Source]) -> None:
         stdout.write(rrexpr.source.show_source())
-        stdout.write_bytes(cargs.terminator)
+        stdout.write_bytes(terminator)
         stdout.flush()
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
