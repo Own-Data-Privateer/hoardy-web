@@ -1223,9 +1223,9 @@ Pretty-print given inputs to stdout.
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution; default
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
+    - `fail`: report failure and stop the execution;
+    - `skip`: report failure, skip relevant inputs/outputs that produced it, and continue; default;
+    - `ignore`: don't report anything, skip skip relevant inputs/outputs that produced it, and continue;
 
 - path ordering:
   - `--paths-given-order`
@@ -1643,9 +1643,9 @@ Essentially, this is a generalized `hoardy-web get`.
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution; default
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
+    - `fail`: report failure and stop the execution;
+    - `skip`: report failure, skip relevant inputs/outputs that produced it, and continue; default;
+    - `ignore`: don't report anything, skip skip relevant inputs/outputs that produced it, and continue;
 
 - path ordering:
   - `--paths-given-order`
@@ -1732,9 +1732,9 @@ The end.
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution; default
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
+    - `fail`: report failure and stop the execution;
+    - `skip`: report failure, skip relevant inputs/outputs that produced it, and continue; default;
+    - `ignore`: don't report anything, skip skip relevant inputs/outputs that produced it, and continue;
 
 - path ordering:
   - `--paths-given-order`
@@ -1846,9 +1846,9 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution; default
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
+    - `fail`: report failure and stop the execution;
+    - `skip`: report failure, skip relevant inputs/outputs that produced it, and continue; default;
+    - `ignore`: don't report anything, skip skip relevant inputs/outputs that produced it, and continue;
 
 - path ordering:
   - `--paths-given-order`
@@ -2534,9 +2534,9 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution; default
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
+    - `fail`: report failure and stop the execution;
+    - `skip`: report failure, skip relevant inputs/outputs that produced it, and continue; default;
+    - `ignore`: don't report anything, skip skip relevant inputs/outputs that produced it, and continue;
 
 - path ordering:
   - `--paths-given-order`
@@ -2643,9 +2643,9 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution; default
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
+    - `fail`: report failure and stop the execution;
+    - `skip`: report failure, skip relevant inputs/outputs that produced it, and continue; default;
+    - `ignore`: don't report anything, skip skip relevant inputs/outputs that produced it, and continue;
 
 - path ordering:
   - `--paths-given-order`
@@ -2745,9 +2745,9 @@ Essentially, this subcommand is a combination of `hoardy-web organize --copy` fo
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution; default
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
+    - `fail`: report failure and stop the execution;
+    - `skip`: report failure, skip relevant inputs/outputs that produced it, and continue; default;
+    - `ignore`: don't report anything, skip skip relevant inputs/outputs that produced it, and continue;
 
 - path ordering:
   - `--paths-given-order`
@@ -3149,9 +3149,9 @@ The end.
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution; default
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
+    - `fail`: report failure and stop the execution;
+    - `skip`: report failure, skip relevant inputs/outputs that produced it, and continue; default;
+    - `ignore`: don't report anything, skip skip relevant inputs/outputs that produced it, and continue;
 
 - path ordering:
   - `--paths-given-order`

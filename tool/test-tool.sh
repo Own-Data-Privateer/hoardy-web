@@ -247,7 +247,7 @@ for arg in "${args[@]}"; do
         done < "$sinput0"
 
         # run `stream` again
-        ok_stdio dotpart-2 self stream --errors skip --format=raw -ue url $idir
+        ok_stdio dotpart-2 self stream --format=raw -ue url $idir
 
         # remove `.part` files
         while IFS= read -r -d $'\0' fname; do

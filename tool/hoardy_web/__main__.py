@@ -3397,11 +3397,11 @@ def make_argparser(real: bool = True) -> argparse.BetterArgumentParser:
 
     def add_errors(cmd: _t.Any) -> None:
         grp = cmd.add_argument_group("error handling")
-        grp.add_argument("--errors", choices=["fail", "skip", "ignore"], default="fail",
+        grp.add_argument("--errors", choices=["fail", "skip", "ignore"], default="skip",
             help=_("""when an error occurs:
-- `fail`: report failure and stop the execution; default
-- `skip`: report failure but skip the reqres that produced it from the output and continue
-- `ignore`: `skip`, but don't report the failure"""),
+- `fail`: report failure and stop the execution;
+- `skip`: report failure, skip relevant inputs/outputs that produced it, and continue; default;
+- `ignore`: don't report anything, skip skip relevant inputs/outputs that produced it, and continue;"""),
         )
 
     datetime_spec = _("""; the `DATETIME` can be specified as
