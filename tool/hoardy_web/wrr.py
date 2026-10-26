@@ -31,12 +31,13 @@ import urllib.parse as _up
 
 import cbor2 as _cbor2
 
-from kisstdlib.base import Decimal, getattr_rec
+from kisstdlib.base import Decimal, getattr_rec, identity, raise_one
 from kisstdlib.compression import *
 from kisstdlib.failure import *
 from kisstdlib.fs import fsdecode, unchanged_stat
 from kisstdlib.io.base import BytesIOReader
 from kisstdlib.io.stdio import stdout as _stdout
+from kisstdlib.itertools_ext import first
 from kisstdlib.time import *
 
 from .tracking import *
@@ -247,7 +248,7 @@ class Reqres:
     @staticmethod
     def from_struct(data: _t.Any, save: bool = True) -> "Reqres":
         if not isinstance(data, list):
-            raise WRRParsingFailure("Reqres parsing failure: wrong spine")
+            raise WRRParsingFailure("while parsing Reqres: wrong spine")
 
         if len(data) == 7 and data[0] == "WEBREQRES/1":
             _, agent, protocol, request_, response_, finished_at, extra = data
@@ -255,7 +256,8 @@ class Reqres:
             purl = parse_url(_t_str("request.url", rq_url))
             if purl.scheme not in Reqres_url_schemes:
                 raise WRRParsingFailure(
-                    "Reqres field `request.url`: unsupported URL scheme `%s`", purl.scheme
+                    "while parsing Reqres field `request.url`: unsupported URL scheme `%s`",
+                    purl.scheme,
                 )
             request = Request(
                 _t_timestamp("request.started_at", rq_started_at),
@@ -307,7 +309,7 @@ class Reqres:
                 websocket,
             )
         else:
-            raise WRRParsingFailure("Reqres parsing failure: unknown format `%s`", data[0])
+            raise WRRParsingFailure("while parsing Reqres: unknown format/version `%s`", data[0])
 
         if save:
             reqres._structure = data  # pylint: disable=protected-access
@@ -370,39 +372,59 @@ class Reqres:
             self._structure = data
         return data
 
-    @staticmethod
-    def from_cbor(fobj: _io.BufferedReader) -> "Reqres":
-        try:
-            struct = _cbor2.load(fobj)
-        except _cbor2.CBORDecodeValueError as exc:
-            raise WRRParsingFailure("CBOR parsing failure") from exc
-        return Reqres.from_struct(struct)
 
-
-def wrr_load(fobj: _io.BufferedReader) -> Reqres:
+def wrr_load(
+    fobj: _io.BufferedReader,
+    min_num: int = 1,
+    max_num: int | None = None,
+    on_error: _t.Callable[[Failure], None] = raise_one,
+    elaborate: _t.Callable[[_t.Any], _t.Any] = identity,
+) -> _t.Iterator[tuple[int, Reqres]]:
     fobj = ungzip_fileobj_maybe(fobj)
-    if fobj.peek(1) == b"":
-        raise WRRParsingFailure("expected CBOR data, got EOF")
 
-    reqres = Reqres.from_cbor(fobj)
-    p = fobj.peek(1)
-    if p != b"":
-        # there's some junk after the end of the Reqres structure
-        raise WRRParsingFailure("expected EOF, got `%s`", p)
-    return reqres
-
-
-def wrr_bundle_load(fobj: _io.BufferedReader) -> _t.Iterator[Reqres]:
-    fobj = ungzip_fileobj_maybe(fobj)
+    n = 0
     while True:
-        if fobj.peek(1) == b"":
-            break
-        yield Reqres.from_cbor(fobj)
+        try:
+            p = fobj.peek(1)
+            if p == b"":
+                if n < min_num:
+                    raise WRRParsingFailure("expected %d more reqres, got EOF", min_num - n)
+                break
+            if max_num is not None and n >= max_num:
+                raise WRRParsingFailure("expected EOF, got `%s`", p)
+
+            try:
+                struct = _cbor2.load(fobj)
+            except _cbor2.CBORDecodeValueError as exc:
+                raise WRRParsingFailure("CBOR parsing failure") from exc
+        except CatastrophicFailure as exc:
+            raise elaborate(  # pylint: disable=raise-missing-from
+                exc.elaborate("while parsing stream element %d", n)
+            )
+
+        try:
+            res = Reqres.from_struct(struct)
+        except Failure as exc:
+            on_error(elaborate(exc.elaborate("while parsing stream element %d", n)))
+        else:
+            yield n, res
+
+        n += 1
 
 
-def wrr_loadf(path: str | bytes) -> Reqres:
+def wrr_loadf(
+    path: str | bytes,
+    min_num: int = 1,
+    max_num: int | None = None,
+    on_error: _t.Callable[[Failure], None] = raise_one,
+) -> _t.Iterator[tuple[int, Reqres]]:
+    def elaborate[F: CatastrophicFailure](exc: F) -> F:
+        return exc.elaborate(
+            "while parsing `%s` with `%s` parser", fsdecode(path), "wrr" if max_num == 1 else "wrrb"
+        )
+
     with open(path, "rb") as f:
-        return wrr_load(f)
+        yield from wrr_load(f, min_num, max_num, on_error, elaborate)
 
 
 def wrr_dumps(reqres: Reqres, compress: bool = True) -> bytes:
@@ -885,7 +907,7 @@ class ReqresExpr[Source: DeferredSource](DeferredSource, LinstEvaluator):
         source = self.source
         if isinstance(self.source, FileSource):
             with source.get_fileobj() as f:
-                reqres = wrr_load(f)
+                reqres = first(wrr_load(f, 1, 1))[1]
         else:
             raise NotImplementedError()
 
@@ -1005,65 +1027,37 @@ DeferredSourceType = _t.TypeVar("DeferredSourceType", bound=DeferredSource)
 
 
 def rrexpr_wrr_load(
-    fobj: _io.BufferedReader, source: DeferredSourceType
-) -> ReqresExpr[DeferredSourceType]:
-    return ReqresExpr(source, wrr_load(fobj))
-
-
-def rrexprs_wrr_bundle_load(
-    fobj: _io.BufferedReader, source: DeferredSourceType
-) -> _t.Iterator[ReqresExpr[StreamElementSource[DeferredSourceType]]]:
-    n = 0
-    for reqres in wrr_bundle_load(fobj):
-        yield ReqresExpr(StreamElementSource(source, n), reqres)
-        n += 1
-
-
-def rrexprs_wrr_some_load(
-    fobj: _io.BufferedReader, source: DeferredSourceType
+    fobj: _io.BufferedReader,
+    source: DeferredSourceType,
+    min_num: int = 1,
+    max_num: int | None = None,
+    on_error: _t.Callable[[Failure], None] = raise_one,
+    elaborate: _t.Callable[[_t.Any], _t.Any] = identity,
 ) -> _t.Iterator[ReqresExpr[DeferredSourceType | StreamElementSource[DeferredSourceType]]]:
-    fobj = ungzip_fileobj_maybe(fobj)
-    if fobj.peek(1) == b"":
-        raise WRRParsingFailure("expected CBOR data, got EOF")
-
-    reqres = Reqres.from_cbor(fobj)
-    if fobj.peek(1) == b"":
-        yield ReqresExpr(source, reqres)
-        return
-
-    yield ReqresExpr(StreamElementSource(source, 0), reqres)
-
-    n = 1
-    while True:
-        reqres = Reqres.from_cbor(fobj)
-        yield ReqresExpr(StreamElementSource(source, n), reqres)
-        n += 1
-        if fobj.peek(1) == b"":
-            break
+    if min_num == max_num == 1:
+        for n, reqres in wrr_load(fobj, min_num, max_num, on_error, elaborate):
+            yield ReqresExpr(source, reqres)
+    else:
+        for n, reqres in wrr_load(fobj, min_num, max_num, on_error, elaborate):
+            yield ReqresExpr(StreamElementSource(source, n), reqres)
 
 
 def rrexpr_wrr_loadf(
-    path: str | bytes, in_stat: _os.stat_result | None = None
-) -> ReqresExpr[FileSource]:
-    with open(path, "rb") as f:
-        in_stat = _os.fstat(f.fileno())
-        return rrexpr_wrr_load(f, FileSource(path, in_stat))
-
-
-def rrexprs_wrr_bundle_loadf(
-    path: str | bytes, in_stat: _os.stat_result | None = None
-) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
-    with open(path, "rb") as f:
-        in_stat = _os.fstat(f.fileno())
-        yield from rrexprs_wrr_bundle_load(f, FileSource(path, in_stat))
-
-
-def rrexprs_wrr_some_loadf(
-    path: str | bytes, in_stat: _os.stat_result | None = None
+    path: str | bytes,
+    min_num: int = 1,
+    max_num: int | None = None,
+    on_error: _t.Callable[[Failure], None] = raise_one,
 ) -> _t.Iterator[ReqresExpr[FileSource | StreamElementSource[FileSource]]]:
+    def elaborate[F: CatastrophicFailure](exc: F) -> F:
+        return exc.elaborate(
+            "while parsing `%s` with `%s` parser", fsdecode(path), "wrr" if max_num == 1 else "wrrb"
+        )
+
     with open(path, "rb") as f:
         in_stat = _os.fstat(f.fileno())
-        yield from rrexprs_wrr_some_load(f, FileSource(path, in_stat))
+        yield from rrexpr_wrr_load(
+            f, FileSource(path, in_stat), min_num, max_num, on_error, elaborate
+        )
 
 
 def trivial_Reqres(

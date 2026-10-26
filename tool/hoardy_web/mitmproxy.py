@@ -22,9 +22,8 @@ import os as _os
 import struct as _struct
 import typing as _t
 
-import mitmproxy.io
-import mitmproxy.http
-import mitmproxy.websocket
+from mitmproxy.io import FlowReader
+from mitmproxy.http import HTTPFlow
 
 from .wrr import *
 
@@ -36,10 +35,10 @@ def _hd(x: _t.Any) -> Headers:
     return Headers(res)
 
 
-def mitmproxy_load_flow(flow: mitmproxy.http.HTTPFlow) -> Reqres | None:
+def mitmproxy_load_flow(flow: HTTPFlow) -> Reqres | None:
     rq = flow.request
     if rq.scheme == "" and rq.method.upper() == "CONNECT":
-        # skip mitmproxy CONNECT requests, these are logged my mitmproxy
+        # skip mitmproxy CONNECT requests, these are logged by mitmproxy
         # when a browser tries to connect to a target host via mitmproxy,
         # they don't carry any useful info
         return None
@@ -143,25 +142,46 @@ def mitmproxy_load_flow(flow: mitmproxy.http.HTTPFlow) -> Reqres | None:
     )
 
 
-def rrexprs_mitmproxy_load_fileobj(
-    fobj: _io.BufferedReader, source: DeferredSourceType
-) -> _t.Iterator[ReqresExpr[StreamElementSource[DeferredSourceType]]]:
-    stream = mitmproxy.io.FlowReader(fobj).stream()
+def mitmproxy_load(
+    fobj: _io.BufferedReader,
+    on_error: _t.Callable[[Failure], None] = raise_one,
+    elaborate: _t.Callable[[_t.Any], _t.Any] = identity,
+) -> _t.Iterator[tuple[int, Reqres]]:
+    stream = FlowReader(fobj).stream()
     n = 0
     for flow in stream:
-        if not isinstance(flow, mitmproxy.http.HTTPFlow):
-            raise ValueError("unknown type", type(flow))
-
-        reqres = mitmproxy_load_flow(flow)
-        if reqres is None:
-            continue
-        yield ReqresExpr(StreamElementSource(source, n), reqres)
+        try:
+            if not isinstance(flow, HTTPFlow):
+                raise Failure("unknown stream element type: `%s`", type(flow).__name__)
+            reqres = mitmproxy_load_flow(flow)
+            if reqres is not None:
+                yield n, reqres
+        except Failure as exc:
+            on_error(elaborate(exc.elaborate("while parsing stream element %d", n)))
+        except CatastrophicFailure as exc:
+            raise elaborate(  # pylint: disable=raise-missing-from
+                exc.elaborate("while parsing stream element %d", n)
+            )
         n += 1
 
 
-def rrexprs_mitmproxy_loadf(
+def rrexpr_mitmproxy_load(
+    fobj: _io.BufferedReader,
+    source: DeferredSourceType,
+    on_error: _t.Callable[[Failure], None] = raise_one,
+    elaborate: _t.Callable[[_t.Any], _t.Any] = identity,
+) -> _t.Iterator[ReqresExpr[StreamElementSource[DeferredSourceType]]]:
+    for n, reqres in mitmproxy_load(fobj, on_error, elaborate):
+        yield ReqresExpr(StreamElementSource(source, n), reqres)
+
+
+def rrexpr_mitmproxy_loadf(
     path: str | bytes,
+    on_error: _t.Callable[[Failure], None] = raise_one,
 ) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
+    def elaborate[F: CatastrophicFailure](exc: F) -> F:
+        return exc.elaborate("while parsing `%s` with `%s` parser", fsdecode(path), "mitmproxy")
+
     with open(path, "rb") as f:
         in_stat = _os.fstat(f.fileno())
-        yield from rrexprs_mitmproxy_load_fileobj(f, FileSource(path, in_stat))
+        yield from rrexpr_mitmproxy_load(f, FileSource(path, in_stat), on_error, elaborate)

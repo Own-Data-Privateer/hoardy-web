@@ -342,18 +342,14 @@ def load_and_emit_many[AnyStr: (
         )
 
 
-def dispatch_rrexprs_load[AnyStr: (
+def dispatch_rrexpr_load[AnyStr: (
     str,
     bytes,
-)]() -> LoadFFunc[AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
+)](on_error: _t.Callable[[Failure], None]) -> LoadFFunc[AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
     import_failed = []
-
-    class Mutable:
-        not_warned: bool = True
-
     have_mitmproxy = False
     try:
-        from .mitmproxy import rrexprs_mitmproxy_loadf
+        from .mitmproxy import rrexpr_mitmproxy_loadf
     except ImportError as exc:
         import_failed.append(("mitmproxy", get_traceback(exc)))
     else:
@@ -362,58 +358,39 @@ def dispatch_rrexprs_load[AnyStr: (
     is_wrr: IncludeFilesFunc[AnyStr] = with_extension_in([".wrr", b".wrr"])
     is_wrrb: IncludeFilesFunc[AnyStr] = with_extension_in([".wrrb", b".wrrb"])
 
-    def warn(path: AnyStr, parser: str, exc: Exception) -> None:
-        _logging.warning(
-            "while processing `%s`: failed to parse with `%s` parser: %s",
-            path,
-            parser,
-            get_traceback(exc),
-        )
-
-    def rrexprs_load(path: AnyStr) -> _t.Iterator[ReqresExpr[_t.Any]]:
+    def rrexpr_load(path: AnyStr) -> _t.Iterator[ReqresExpr[_t.Any]]:
         if is_wrr(path):
-            try:
-                yield rrexpr_wrr_loadf(path)
-                return
-            except Exception as exc:
-                warn(path, "wrr", exc)
+            yield from rrexpr_wrr_loadf(path, 1, 1, on_error)
         elif is_wrrb(path):
-            try:
-                yield from rrexprs_wrr_some_loadf(path)
-                return
-            except Exception as exc:
-                warn(path, "wrrb", exc)
+            yield from rrexpr_wrr_loadf(path, 1, None, on_error)
         elif have_mitmproxy:
-            try:
-                yield from rrexprs_mitmproxy_loadf(path)
-                return
-            except Exception as exc:
-                warn(path, "mitmproxy", exc)
+            yield from rrexpr_mitmproxy_loadf(path, on_error)
+        else:
+            if import_failed:
+                for m, e in import_failed:
+                    _logging.warning(gettext("failed to import `%s` parser: %s"), m, e)
+                import_failed.clear()
+            on_error(Failure("failed to find a suitable parser"))
 
-        if Mutable.not_warned:
-            Mutable.not_warned = False
-            for m, e in import_failed:
-                _logging.warning(gettext("failed to import `%s` parser: %s"), m, e)
-        raise Failure("failed to find a suitable parser")
-
-    return rrexprs_load
+    return rrexpr_load
 
 
-def make_rrexprs_load[AnyStr: (
+def select_rrexpr_loadf[AnyStr: (
     str,
     bytes,
 )](cargs: _t.Any) -> LoadFFunc[AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
+    on_error = select_on_error(cargs.errors)
     loader = cargs.loader
     if loader is None:
-        return dispatch_rrexprs_load()
+        return dispatch_rrexpr_load(on_error)
     if loader == "wrr":
-        return rrexpr_wrr_loadf
+        return lambda path: rrexpr_wrr_loadf(path, 1, 1, on_error)
     if loader == "wrrb":
-        return rrexprs_wrr_some_loadf
+        return lambda path: rrexpr_wrr_loadf(path, 1, None, on_error)
     if loader == "mitmproxy":
-        from .mitmproxy import rrexprs_mitmproxy_loadf
+        from .mitmproxy import rrexpr_mitmproxy_loadf
 
-        return rrexprs_mitmproxy_loadf
+        return lambda path: rrexpr_mitmproxy_loadf(path, on_error)
     assert False
 
 
@@ -436,7 +413,7 @@ def cmd_pprint(cargs: _t.Any) -> None:
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
     handle_paths(cargs)
-    load_and_emit_many(cargs, make_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
+    load_and_emit_many(cargs, select_rrexpr_loadf(cargs), filters_allow, emit, cargs.paths)
     filters_warn()
 
 
@@ -486,7 +463,7 @@ def cmd_get(cargs: _t.Any) -> None:
         cargs.mexprs = {stdout: [compile_expr(default_expr("get", cargs.default_expr))]}
 
     exp_path = _op.expanduser(cargs.path)
-    rrexpr = rrexpr_wrr_loadf(exp_path)
+    rrexpr = first(rrexpr_wrr_loadf(exp_path, 1, 1))
     rrexpr.sniff = cargs.sniff
 
     for fobj, exprs in cargs.mexprs.items():
@@ -513,7 +490,7 @@ def cmd_run(cargs: _t.Any) -> None:
     tmp_paths = []
     try:
         for exp_path in cargs.paths:
-            rrexpr = rrexpr_wrr_loadf(exp_path)
+            rrexpr = first(rrexpr_wrr_loadf(exp_path, 1, 1))
             rrexpr.sniff = cargs.sniff
 
             # TODO: extension guessing
@@ -565,7 +542,7 @@ def cmd_stream(cargs: _t.Any) -> None:
     handle_paths(cargs)
     stream.start()
     try:
-        load_and_emit_many(cargs, make_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
+        load_and_emit_many(cargs, select_rrexpr_loadf(cargs), filters_allow, emit, cargs.paths)
     finally:
         stream.finish()
 
@@ -583,7 +560,7 @@ def cmd_find(cargs: _t.Any) -> None:
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
     handle_paths(cargs)
-    load_and_emit_many(cargs, make_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
+    load_and_emit_many(cargs, select_rrexpr_loadf(cargs), filters_allow, emit, cargs.paths)
 
     filters_warn()
 
@@ -1781,7 +1758,7 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
                                     old_source = FileSource(real_out_path, real_stat)
                                 else:
                                     old_source = FileSource(abs_out_path, out_stat)
-                                old_reqres = wrr_load(f)
+                                old_reqres = first(wrr_load(f, 1, 1))[1]
                         except FileNotFoundError:
                             issue = Failure(
                                 "destination is a broken symlink; treating it as a non-existent file"
@@ -1974,7 +1951,7 @@ def cmd_organize(cargs: _t.Any) -> None:
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
-    rrexprs_load = make_rrexprs_load(cargs)
+    rrexpr_loadf = select_rrexpr_loadf(cargs)
     handle_paths(cargs)
     emit: EmitFunc[ReqresExpr[_t.Any]]
     if cargs.destination is not None:
@@ -1985,7 +1962,7 @@ def cmd_organize(cargs: _t.Any) -> None:
         try:
             load_and_emit_many(
                 cargs,
-                rrexprs_load,
+                rrexpr_loadf,
                 filters_allow,
                 emit,
                 cargs.paths,
@@ -2032,7 +2009,7 @@ def cmd_organize(cargs: _t.Any) -> None:
             try:
                 load_and_emit_many(
                     cargs,
-                    rrexprs_load,
+                    rrexpr_loadf,
                     filters_allow,
                     emit,
                     paths,
@@ -2060,7 +2037,7 @@ def cmd_organize(cargs: _t.Any) -> None:
             try:
                 load_and_emit_many(
                     cargs,
-                    rrexprs_load,
+                    rrexpr_loadf,
                     filters_allow,
                     emit,
                     [exp_path],
@@ -2074,7 +2051,7 @@ def cmd_organize(cargs: _t.Any) -> None:
 
 def cmd_import_generic[Source: DeferredSource](
     cargs: _t.Any,
-    rrexprs_loadf: _t.Callable[[str | bytes], _t.Iterator[ReqresExpr[Source]]],
+    rrexpr_loadf: _t.Callable[[str | bytes], _t.Iterator[ReqresExpr[Source]]],
 ) -> None:
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
 
@@ -2110,7 +2087,7 @@ def cmd_import_generic[Source: DeferredSource](
         False,
     )
     try:
-        load_and_emit_many(cargs, rrexprs_loadf, filters_allow, emit, cargs.paths)
+        load_and_emit_many(cargs, rrexpr_loadf, filters_allow, emit, cargs.paths)
     finally:
         finish()
 
@@ -2118,13 +2095,15 @@ def cmd_import_generic[Source: DeferredSource](
 
 
 def cmd_import_bundle(cargs: _t.Any) -> None:
-    cmd_import_generic(cargs, rrexprs_wrr_bundle_loadf)
+    on_error = select_on_error(cargs.errors)
+    cmd_import_generic(cargs, lambda path: rrexpr_wrr_loadf(path, 1, None, on_error))
 
 
 def cmd_import_mitmproxy(cargs: _t.Any) -> None:
-    from .mitmproxy import rrexprs_mitmproxy_loadf
+    from .mitmproxy import rrexpr_mitmproxy_loadf
 
-    cmd_import_generic(cargs, rrexprs_mitmproxy_loadf)
+    on_error = select_on_error(cargs.errors)
+    cmd_import_generic(cargs, lambda path: rrexpr_mitmproxy_loadf(path, on_error))
 
 
 def path_to_url(x: str) -> str:
@@ -2316,13 +2295,13 @@ def cmd_mirror(cargs: _t.Any) -> None:
     handle_paths(cargs)
     elaborate_paths(cargs.boring)
 
-    rrexprs_load = make_rrexprs_load(cargs)
+    rrexpr_loadf = select_rrexpr_loadf(cargs)
     seen_paths: set[PathType] = set()
     load_and_emit_many(
-        cargs, rrexprs_load, filters_allow, collect(True), cargs.paths, seen_paths=seen_paths
+        cargs, rrexpr_loadf, filters_allow, collect(True), cargs.paths, seen_paths=seen_paths
     )
     load_and_emit_many(
-        cargs, rrexprs_load, filters_allow, collect(False), cargs.boring, seen_paths=seen_paths
+        cargs, rrexpr_loadf, filters_allow, collect(False), cargs.boring, seen_paths=seen_paths
     )
 
     indexed_num = index.size
@@ -2758,14 +2737,14 @@ def cmd_serve(cargs: _t.Any) -> None:
 
         handle_paths(cargs)
 
-        rrexprs_load = make_rrexprs_load(cargs)
+        rrexpr_loadf = select_rrexpr_loadf(cargs)
         seen_paths: set[PathType] = set()
         if destination is not None and cargs.implicit and _op.exists(destination):
             load_and_emit_many(
-                cargs, rrexprs_load, filters_allow, emit, [destination], seen_paths=seen_paths
+                cargs, rrexpr_loadf, filters_allow, emit, [destination], seen_paths=seen_paths
             )
         load_and_emit_many(
-            cargs, rrexprs_load, filters_allow, emit, cargs.paths, seen_paths=seen_paths
+            cargs, rrexpr_loadf, filters_allow, emit, cargs.paths, seen_paths=seen_paths
         )
     elif cargs.implicit:
         raise CatastrophicFailure("`--no-replay`: not allowed with `--implicit`")
@@ -2947,7 +2926,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         cborf.seek(0)
         try:
             try:
-                reqres = wrr_load(cborf)
+                reqres = first(wrr_load(cborf, 1, 1))[1]
             except Failure as exc:
                 raise exc.elaborate("failed to parse content body")
             except Exception as exc:
