@@ -1513,7 +1513,7 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
 
     updated_files: list[AnyStr] = []
 
-    RemoveFileSource = tuple[FileSource, bool]
+    RemoveFileSource = tuple[WRRFileSource, bool]
     remove_files: list[RemoveFileSource] = []
 
     max_cache: int = cargs.cache
@@ -1535,7 +1535,7 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
         if to_remove is not None:
             for el in to_remove:
                 src, _report = el
-                if isinstance(src, FileSource):
+                if isinstance(src, WRRFileSource):
                     remove_files.append(_t.cast(RemoveFileSource, el))
                 else:
                     mem.consumption -= src.approx_size()
@@ -1755,9 +1755,9 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
                             with open(real_out_path, "rb") as f:
                                 if is_symlink:
                                     real_stat = _os.fstat(f.fileno())
-                                    old_source = FileSource(real_out_path, real_stat)
+                                    old_source = WRRFileSource(real_out_path, real_stat)
                                 else:
-                                    old_source = FileSource(abs_out_path, out_stat)
+                                    old_source = WRRFileSource(abs_out_path, out_stat)
                                 old_reqres = first(wrr_load(f, 1, 1))[1]
                         except FileNotFoundError:
                             issue = Failure(
@@ -1905,7 +1905,7 @@ def make_organize_emit[Source: DeferredSource, AnyStr: (
         overwrite: bool | _os.stat_result,
         sync: bool | Deferred[AnyStr],
     ) -> None:
-        if isinstance(source, FileSource):
+        if isinstance(source, WRRFileSource):
             subaction_op(source.path, path, allow_overwrites=overwrite, sync=sync)
         elif copy:
             write_file(wrr_dumps(reqres), path, allow_overwrites=overwrite, sync=sync)
@@ -2067,7 +2067,7 @@ def cmd_import_generic[Source: DeferredSource](
         overwrite: bool | _os.stat_result,
         sync: bool | Deferred[AnyStr],
     ) -> None:
-        if isinstance(source, FileSource):
+        if isinstance(source, WRRFileSource):
             clone_file(source.path, path, allow_overwrites=overwrite, sync=sync)
         else:
             write_file(wrr_dumps(reqres), path, allow_overwrites=overwrite, sync=sync)
@@ -2982,7 +2982,7 @@ def cmd_serve(cargs: _t.Any) -> None:
             trrexpr.values["num"] += 1
 
         if this_replay:
-            rrexpr = ReqresExpr(FileSource(abs_out_path, _os.stat(abs_out_path)), reqres)
+            rrexpr = ReqresExpr(WRRFileSource(abs_out_path, _os.stat(abs_out_path)), reqres)
             rrexpr.values = trrexpr.values
             if filters_allow(rrexpr):
                 emit(rrexpr)

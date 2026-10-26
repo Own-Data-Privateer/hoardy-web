@@ -28,6 +28,10 @@ from mitmproxy.http import HTTPFlow
 from .wrr import *
 
 
+class MITMProxyFileSource(FileSource):
+    pass
+
+
 def _hd(x: _t.Any) -> Headers:
     res = []
     for k, v in x.fields:
@@ -178,10 +182,10 @@ def rrexpr_mitmproxy_load(
 def rrexpr_mitmproxy_loadf(
     path: str | bytes,
     on_error: _t.Callable[[Failure], None] = raise_one,
-) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
+) -> _t.Iterator[ReqresExpr[StreamElementSource[MITMProxyFileSource]]]:
     def elaborate[F: CatastrophicFailure](exc: F) -> F:
         return exc.elaborate("while parsing `%s` with `%s` parser", fsdecode(path), "mitmproxy")
 
     with open(path, "rb") as f:
         in_stat = _os.fstat(f.fileno())
-        yield from rrexpr_mitmproxy_load(f, FileSource(path, in_stat), on_error, elaborate)
+        yield from rrexpr_mitmproxy_load(f, MITMProxyFileSource(path, in_stat), on_error, elaborate)

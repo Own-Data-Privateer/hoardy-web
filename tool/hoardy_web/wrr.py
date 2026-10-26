@@ -541,6 +541,10 @@ class FileSource(DeferredSource):
         return fobj
 
 
+class WRRFileSource(FileSource):
+    pass
+
+
 @_dc.dataclass
 class StreamElementSource[Source: DeferredSource](DeferredSource):
     stream_source: Source
@@ -905,7 +909,7 @@ class ReqresExpr[Source: DeferredSource](DeferredSource, LinstEvaluator):
             return reqres
 
         source = self.source
-        if isinstance(self.source, FileSource):
+        if isinstance(self.source, WRRFileSource):
             with source.get_fileobj() as f:
                 reqres = first(wrr_load(f, 1, 1))[1]
         else:
@@ -916,7 +920,7 @@ class ReqresExpr[Source: DeferredSource](DeferredSource, LinstEvaluator):
         return reqres
 
     def unload(self, completely: bool = True) -> None:
-        if isinstance(self.source, FileSource):
+        if isinstance(self.source, WRRFileSource):
             # this `reqres` is cheap to re-load
             self._reqres = None
         if completely:
@@ -1047,7 +1051,7 @@ def rrexpr_wrr_loadf(
     min_num: int = 1,
     max_num: int | None = None,
     on_error: _t.Callable[[Failure], None] = raise_one,
-) -> _t.Iterator[ReqresExpr[FileSource | StreamElementSource[FileSource]]]:
+) -> _t.Iterator[ReqresExpr[WRRFileSource | StreamElementSource[WRRFileSource]]]:
     def elaborate[F: CatastrophicFailure](exc: F) -> F:
         return exc.elaborate(
             "while parsing `%s` with `%s` parser", fsdecode(path), "wrr" if max_num == 1 else "wrrb"
@@ -1056,7 +1060,7 @@ def rrexpr_wrr_loadf(
     with open(path, "rb") as f:
         in_stat = _os.fstat(f.fileno())
         yield from rrexpr_wrr_load(
-            f, FileSource(path, in_stat), min_num, max_num, on_error, elaborate
+            f, WRRFileSource(path, in_stat), min_num, max_num, on_error, elaborate
         )
 
 
