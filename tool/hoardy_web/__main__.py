@@ -2669,6 +2669,8 @@ def cmd_serve(cargs: _t.Any) -> None:
     print_outputs: bool = cargs.print
     terminator: bytes = cargs.terminator
 
+    implicit_similar: bool | None = cargs.implicit_similar
+
     if cargs.mode is None:
         do_replay = False
         ideal = anytime.end
@@ -3077,7 +3079,11 @@ def cmd_serve(cargs: _t.Any) -> None:
                 pattern = surl
             elif opts.glob:
                 pattern = translate(surl)[4:-3]
-            elif opts.similar or not_found and "*" in surl:
+            elif (
+                opts.similar
+                or not_found
+                and (implicit_similar is True or implicit_similar is False and "*" in surl)
+            ):
                 opts.similar = True
                 if have_purl and purl.scheme.startswith("http"):
                     # if it can be parsed as a valid URL, also glob without the scheme and with the
@@ -4712,6 +4718,22 @@ thus, when setting this option to a custom value, you should probably only use t
         help=_(f"replay `HTTP` responses like `{__prog__} mirror` does; setting this option will disable replay of all `HTTP` headers except for `Location` and enable `inline_headers` option in `scrub` calls used in default `EXPR`s, similar to `{__prog__} mirror`; i.e., enabling this option will, essentially, turn this subcommand into an on-demand `{__prog__} mirror` which you can query with `curl` or some such"),
     )
     cmd.set_defaults(web_replay=True)
+
+    agrp = cmd.add_argument_group("while generating `/find/` page results, if neither of `/find/...,re/` or `/find/...,glob/` options are set but the requested URL can't be found in the index")
+    grp = agrp.add_mutually_exclusive_group()
+    grp.add_argument("--implicit-similar", dest="implicit_similar", action="store_true",
+        help=_("""... try searching for URLs similar to the requested one and include those results in the output too, as if `/find/...,similar/` option was set;
+if your index contains a lot of distinct URLs, this will slow down generation of `/find/` pages quite a bit, which includes generation of empty "Not Found" pages, which can be quite annoying;
+it could also make some of your generated `/find/` pages include spurious results;
+on the other hand, this option can be awfully convenient when you regularly re-visit websites that add garbage query parameters to their URLs and you would rather make your `/find/` requests always ignore those automatically"""),
+    )
+    grp.add_argument("--implicit-similar-if-star", dest="implicit_similar", action="store_false",
+        help=_('... try searching for similar URLs and include those results in the output only if the requested URL contains the "*" symbol; default'),
+    )
+    grp.add_argument("--no-implicit-similar", dest="implicit_similar", action="store_const", const=None,
+        help=_("... don't do anything special"),
+    )
+    cmd.set_defaults(implicit_similar=False)  # --implicit-similar-if-star
 
     cmd.set_defaults(func=cmd_serve)
     # fmt: on

@@ -3305,6 +3305,17 @@ The end.
   - `--mirror`
   : replay `HTTP` responses like `hoardy-web mirror` does; setting this option will disable replay of all `HTTP` headers except for `Location` and enable `inline_headers` option in `scrub` calls used in default `EXPR`s, similar to `hoardy-web mirror`; i.e., enabling this option will, essentially, turn this subcommand into an on-demand `hoardy-web mirror` which you can query with `curl` or some such
 
+- while generating `/find/` page results, if neither of `/find/...,re/` or `/find/...,glob/` options are set but the requested URL can't be found in the index:
+  - `--implicit-similar`
+  : ... try searching for URLs similar to the requested one and include those results in the output too, as if `/find/...,similar/` option was set;
+    if your index contains a lot of distinct URLs, this will slow down generation of `/find/` pages quite a bit, which includes generation of empty "Not Found" pages, which can be quite annoying;
+    it could also make some of your generated `/find/` pages include spurious results;
+    on the other hand, this option can be awfully convenient when you regularly re-visit websites that add garbage query parameters to their URLs and you would rather make your `/find/` requests always ignore those automatically
+  - `--implicit-similar-if-star`
+  : ... try searching for similar URLs and include those results in the output only if the requested URL contains the "*" symbol; default
+  - `--no-implicit-similar`
+  : ... don't do anything special
+
 ## Examples
 
 - Pretty-print all reqres in `../simple_server/pwebarc-dump` using an abridged (for ease of reading and rendering) verbose textual representation:
