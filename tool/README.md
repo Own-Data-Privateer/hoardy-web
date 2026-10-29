@@ -3269,16 +3269,16 @@ The end.
   - `--no-fallback`
   : ... don't write anything to disk, don't touch the index, return an `HTTP` error to the submitter; enabling this will prevent `HTTP` clients from submitting garbage to this archiving server instance, but it will also make it impossible to archive perfectly correct `WRR`-dumps in situations when `cbor2` library or `WRR` parsing code of `hoardy-web` itself fail to parse them properly (which does happen, rarely)
 
-- when `--to` and `--fallback` are set but parsing of an `HTTP`-submitted `WRR`-dump fails:
-  - `--fallback-bucket-prefix STR`
-  : ... when writing files to disk, prepend the following prefix to the submitted bucket value; default: `fallback-`
+- when `--fallback` is in effect:
   - `--fallback-output OUTPUT_FORMAT`
-  : ... use this value as an `--output` format (which see);
+  : ... use this value as an `--output` format (which see) instead;
     since this value will be evaluated with without an associated reqres, the following rules apply:
     - all time-related substitutions (`qtime`, `stime`, `ftime`, `qyear`, `syear`, `fyear`, etc) will be set using current date and time,
     - the `num` substitution will work as normal,
     - all other substitutions will be filled with placeholders;
     thus, when setting this option to a custom value, you should probably only use the first two;
+  - `--fallback-bucket-prefix STR`
+  : ... prepend the following prefix to the submitted bucket value; default: `fallback-`
 
 - for each URL, index and replay:
   - `--all`

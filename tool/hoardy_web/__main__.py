@@ -4687,17 +4687,17 @@ The end.
     )
     cmd.set_defaults(fallback=True)  # --fallback
 
-    agrp = cmd.add_argument_group("when `--to` and `--fallback` are set but parsing of an `HTTP`-submitted `WRR`-dump fails")
-    agrp.add_argument("--fallback-bucket-prefix", metavar="STR", default="fallback-", type=str,
-        help=_("... when writing files to disk, prepend the following prefix to the submitted bucket value; default: `%(default)s`"),
-    )
+    agrp = cmd.add_argument_group("when `--fallback` is in effect")
     agrp.add_argument("--fallback-output", metavar="OUTPUT_FORMAT", default="fallback", type=str,
-        help=_("""... use this value as an `--output` format (which see);
+        help=_("""... use this value as an `--output` format (which see) instead;
 since this value will be evaluated with without an associated reqres, the following rules apply:
 - all time-related substitutions (`qtime`, `stime`, `ftime`, `qyear`, `syear`, `fyear`, etc) will be set using current date and time,
 - the `num` substitution will work as normal,
 - all other substitutions will be filled with placeholders;
 thus, when setting this option to a custom value, you should probably only use the first two;"""),
+    )
+    agrp.add_argument("--fallback-bucket-prefix", metavar="STR", default="fallback-", type=str,
+        help=_("... prepend the following prefix to the submitted bucket value; default: `%(default)s`"),
     )
 
     # `--all` is the default
