@@ -4704,11 +4704,11 @@ thus, when setting this option to a custom value, you should probably only use t
     add_mode(cmd, "serve", "for each URL, index and replay", (False, None))
 
     agrp = cmd.add_argument_group("replay how")
-
-    agrp.add_argument("--web", dest="web_replay", action="store_true",
+    grp = agrp.add_mutually_exclusive_group()
+    grp.add_argument("--web", dest="web_replay", action="store_true",
         help=_("replay `HTTP` responses as close as possible to their original captures; default"),
     )
-    agrp.add_argument("--mirror", dest="web_replay", action="store_false",
+    grp.add_argument("--mirror", dest="web_replay", action="store_false",
         help=_(f"replay `HTTP` responses like `{__prog__} mirror` does; setting this option will disable replay of all `HTTP` headers except for `Location` and enable `inline_headers` option in `scrub` calls used in default `EXPR`s, similar to `{__prog__} mirror`; i.e., enabling this option will, essentially, turn this subcommand into an on-demand `{__prog__} mirror` which you can query with `curl` or some such"),
     )
     cmd.set_defaults(web_replay=True)
