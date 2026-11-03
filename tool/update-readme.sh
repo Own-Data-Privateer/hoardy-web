@@ -24,6 +24,9 @@ s/^\(#\+\) \(hoardy-web[^[({]*\) [[({].*/\1 \2/
 s/^# usage: \(.*\)$/# Development: `\1`/
 '
 } > README.new
+if grep -F __prog__ README.new; then
+    exit 1
+fi
 mv README.new README.md
 done
 pandoc -f markdown -t html README.md > README.html
