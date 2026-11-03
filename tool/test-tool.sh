@@ -211,12 +211,12 @@ for arg in "${args[@]}"; do
     cd "$TESTS_DIR"
 
     # import the inputs
-    begin import bundle source
-    idir=import-bundle
+    begin import source
+    idir=import
     if [[ -z "$in_wine" ]]; then
-        ok_no_stderr import-bundle self import bundle --quiet --stdin0 --to $idir < "$stdin0"
+        ok_no_stderr import self import --quiet --stdin0 --to $idir < "$stdin0"
     else
-        ok self import bundle --quiet --to $idir "$(win32path "$src")"
+        ok self import --quiet --to $idir "$(win32path "$src")"
     fi
     describe-forest $idir > $idir.describe-dir
     num_inputs=$(cat $idir.describe-dir | grep reg | wc -l)
@@ -440,7 +440,7 @@ for arg in "${args[@]}"; do
     fi
 
     if start "serve sanity"; then
-        # feed results of `import bundle` to `serve` via `curl`, then check
+        # feed results of `import` to `serve` via `curl`, then check
         # that the results are the same
 
         mkdir -p serve
@@ -506,9 +506,9 @@ for arg in "${args[@]}"; do
                 error "serve: left some \`.part\` files"
             fi
 
-            # test equality to import-bundle
+            # test equality to the results of `import`
             while IFS= read -r -d $'\0' fname; do
-                if ! diff -U 0 "$fname" "serve/default/${fname#import-bundle/}" ; then
+                if ! diff -U 0 "$fname" "serve/default/${fname#import/}" ; then
                     error "serve: $fname is not the same"
                 fi
             done < "$sinput0"

@@ -2049,13 +2049,11 @@ def cmd_organize(cargs: _t.Any) -> None:
     filters_warn()
 
 
-def cmd_import_generic[Source: DeferredSource](
-    cargs: _t.Any,
-    rrexpr_loadf: _t.Callable[[str | bytes], _t.Iterator[ReqresExpr[Source]]],
-) -> None:
+def cmd_import(cargs: _t.Any) -> None:
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
-
     _num, filters_allow, filters_warn = compile_filters(cargs)
+    rrexpr_loadf = select_rrexpr_loadf(cargs)
+    handle_paths(cargs)
 
     def action_op[AnyStr: (
         str,
@@ -2072,8 +2070,6 @@ def cmd_import_generic[Source: DeferredSource](
         else:
             write_file(wrr_dumps(reqres), path, allow_overwrites=overwrite, sync=sync)
 
-    handle_paths(cargs)
-    emit: EmitFunc[ReqresExpr[Source]]
     emit, finish = make_cached_emit(
         cargs,
         "import",
@@ -2092,18 +2088,6 @@ def cmd_import_generic[Source: DeferredSource](
         finish()
 
     filters_warn()
-
-
-def cmd_import_bundle(cargs: _t.Any) -> None:
-    on_error = select_on_error(cargs.errors)
-    cmd_import_generic(cargs, lambda path: rrexpr_wrr_loadf(path, 1, None, on_error))
-
-
-def cmd_import_mitmproxy(cargs: _t.Any) -> None:
-    from .mitmproxy import rrexpr_mitmproxy_loadf
-
-    on_error = select_on_error(cargs.errors)
-    cmd_import_generic(cargs, lambda path: rrexpr_mitmproxy_loadf(path, on_error))
 
 
 def path_to_url(x: str) -> str:
@@ -4501,34 +4485,20 @@ source files that are themselves symlinks will generate errors""")
 
     cmd.set_defaults(func=cmd_organize)
 
-    def add_import_args(cmd: _t.Any) -> None:
-        add_organize(cmd, "import", 32, 1024)
-        add_impure(cmd)
-        add_common(cmd, "import", "import reqres when")
-        add_fileout(cmd, "import")
-
     # import
-    supcmd = subparsers.add_parser("import",
+    cmd = subparsers.add_parser("import",
         help=_("convert other `HTTP` archive formats into `WRR`"),
-        description=_(f"""Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
+        description=_(f"""Parse each `INPUT` `PATH` into (a sequence of) reqres, convert them to `WRR`-dumps, and place them into separate `*.wrr` files under `OUTPUT_DESTINATION`, with paths derived from their reqres metadata.
 
-Internally, this is an alias for `{__prog__} organize --copy --cache 32 --batch 1024 --no-defer` for `INPUT` files that use different files formats."""),
+Internally, this in a slightly optimized alias for `{__prog__} organize --copy --cache 32 --batch 1024 --no-defer` (which see)."""),
     )
-    supsub = supcmd.add_subparsers(title="file formats")
 
-    cmd = supsub.add_parser("wrrb", aliases=["bundle"],
-        help=_("convert `WRR` bundles into separate `WRR` files"),
-        description=_("""Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""),
-    )
-    add_import_args(cmd)
-    cmd.set_defaults(func=cmd_import_bundle)
+    add_organize(cmd, "import", 32, 1024)
+    add_impure(cmd)
+    add_common(cmd, "import", "import reqres when")
+    add_fileout(cmd, "import")
 
-    cmd = supsub.add_parser("mitmproxy", aliases=["mitmdump"],
-        help=_("convert `mitmproxy` stream dumps (files produced by `mitmdump`) into `WRR` files"),
-        description=_("""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""),
-    )
-    add_import_args(cmd)
-    cmd.set_defaults(func=cmd_import_mitmproxy)
+    cmd.set_defaults(func=cmd_import)
 
     def add_index_memory(cmd: _t.Any) -> None:
         agrp = cmd.add_argument_group("caching")

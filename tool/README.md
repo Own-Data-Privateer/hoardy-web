@@ -52,11 +52,7 @@
 <li><a href="#hoardy-web-stream" id="toc-hoardy-web-stream">hoardy-web stream</a></li>
 <li><a href="#hoardy-web-find" id="toc-hoardy-web-find">hoardy-web find</a></li>
 <li><a href="#hoardy-web-organize" id="toc-hoardy-web-organize">hoardy-web organize</a></li>
-<li><a href="#hoardy-web-import" id="toc-hoardy-web-import">hoardy-web import</a>
-<ul>
-<li><a href="#hoardy-web-import-wrrb" id="toc-hoardy-web-import-wrrb">hoardy-web import wrrb</a></li>
-<li><a href="#hoardy-web-import-mitmproxy" id="toc-hoardy-web-import-mitmproxy">hoardy-web import mitmproxy</a></li>
-</ul></li>
+<li><a href="#hoardy-web-import" id="toc-hoardy-web-import">hoardy-web import</a></li>
 <li><a href="#hoardy-web-mirror" id="toc-hoardy-web-mirror">hoardy-web mirror</a></li>
 <li><a href="#hoardy-web-serve" id="toc-hoardy-web-serve">hoardy-web serve</a></li>
 </ul></li>
@@ -363,19 +359,18 @@ This is slightly faster than the default `--load-any` and, for most loaders, pro
 To use `hoardy-web organize --(move|hardlink|symlink)`, `get`, and `run` subcommands on data stored in file formats other than separate `WRR` files, you will have to import them first:
 
 ```bash
-hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
-hoardy-web import mitmproxy --to ~/hoardy-web/mitmproxy ~/mitmproxy/mitmproxy.*.dump
+hoardy-web import --load-wrrb --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
+hoardy-web import --load-mitmproxy --to ~/hoardy-web/mitmproxy ~/mitmproxy/mitmproxy.*.dump
 ```
 
 Note that `.wrr` files can be parsed as single-dump `.wrrb` files, so the first command above will work even when some of the exported dumps were exported as separate `.wrr` files by the `Hoardy-Web` extension (because you configured it to do that, because it exported a bucket with a single dump as a separate file, because it exported a dump that was larger than set maximum bundle size as a separate file, etc).
 So, essentially, the first command above command is equivalent to
 
 ```bash
-hoardy-web organize --copy --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.wrr
-hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.wrrb
+hoardy-web organize --copy --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.wrr*
 ```
 
-In fact, internally, `hoardy-web import bundle` is actually a slightly optimized alias for `hoardy-web organize --load-wrrb --copy` configured to assume that its inputs will contain almost no duplicated reqres.
+In fact, internally, `hoardy-web import` is actually a slightly optimized alias for `hoardy-web organize --copy` configured to assume that its inputs will contain almost no duplicated reqres.
 
 ## <span id="filter"/>Find and filter things
 
@@ -512,7 +507,7 @@ Assuming you keep your `WRR` dumps in `~/hoardy-web/raw`, the following commands
 
 ```bash
 # import exported extension outputs
-hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
+hoardy-web import --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
 # and/or move and rename `hoardy-web-sas` outputs
 hoardy-web organize --move --to ~/hoardy-web/raw ../simple_server/pwebarc-dump
 
@@ -2466,135 +2461,9 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
 
 ### hoardy-web import
 
-Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
+Parse each `INPUT` `PATH` into (a sequence of) reqres, convert them to `WRR`-dumps, and place them into separate `*.wrr` files under `OUTPUT_DESTINATION`, with paths derived from their reqres metadata.
 
-Internally, this is an alias for `hoardy-web organize --copy --cache 32 --batch 1024 --no-defer` for `INPUT` files that use different files formats.
-
-- options:
-  - `-h, --help`
-  : show this help message and exit
-  - `--markdown`
-  : show `--help` formatted in Markdown
-
-- file formats:
-  - `{wrrb,bundle,mitmproxy,mitmdump}`
-    - `wrrb (bundle)`
-    : convert `WRR` bundles into separate `WRR` files
-    - `mitmproxy (mitmdump)`
-    : convert `mitmproxy` stream dumps (files produced by `mitmdump`) into `WRR` files
-
-#### hoardy-web import wrrb
-
-Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
-
-- options:
-  - `-h, --help`
-  : show this help message and exit
-  - `--markdown`
-  : show `--help` formatted in Markdown
-  - `--dry-run`
-  : perform a trial run without actually performing any changes
-  - `-q, --quiet`
-  : don't log file updates and don't print end-of-filtering warnings to stderr
-
-- caching:
-  - `--cache, --cache-number INT`
-  : cache at most this many output paths in RAM; default: `32`
-  - `--batch, --batch-number INT`
-  : batch at most this many file system operations (`write`s, `fsync`s, `--move`-related `unlink`s, etc); default: `1024`;
-    which is to say that `--batch 0` forces all file system operations to be performed immediately;
-    meanwhile, `--batch N` for `N > 0` enables batching of file system operations, which, in most situations, greatly improves observed program performance, since batching greatly reduces the number of needed directory `fsync`s
-  - `--memory, --max-memory INT`
-  : while applying the above settings, try to limit total memory consumption to this value, in MiB; default: `1024`
-  - `--lazy`
-  : set all of the options above to positive infinities; default when `--dry-run` is set;
-    in other words, compute everything in RAM and then write the results to disk in a single batch;
-    useful for `hoardy-web organize --symlink --latest --output flat` and similar in cases when the number of inputs is large, the number of distinct `--output` values is small, you have enough RAM to do everything in-memory, and you want to minimize writes to disk;
-    default when `--dry-run` is set because otherwise the results of a run with `--dry-run` will differ from a normal run since some non-run updates could be emitted from cache
-  - `--no-lazy`
-  : use the above values, even if `--dry-run` is set; default when `--dry-run` is not set
-
-- fsyncs:
-  - `--fsync`
-  : perform all `fsync`s properly; default
-  - `--no-fsync`
-  : skip all `fsync`s; setting this also forces `--batch 0`;
-    this option should only be used for testing or when both inputs and outputs are stored on the same file system which is also running in `data=ordered` mode;
-    in all other situations **the use of this option is DANGEROUS as it could result in INCONSISTENT DISK STATES and/or LOSE SOME OF YOUR DATA on power loss**;
-    the latter is the reason why the combination of `--no-sync --move` also requires `--please-destroy-my-data`
-
-- deferring:
-  - `--defer`
-  : defer all updates into the cache and perform them as cache elements get evicted
-  - `--no-defer`
-  : perform all updates eagerly, never deferring them into the cache; default unless `--dry-run` is set;
-    in other words, force output files to be batched for writing in the order their respective reqres appear among the given `INPUT`s;
-    note that this option being set does note imply that the resulting file system operations will be performed immediately, to force that this option needs to be combined with `--batch 0` or `--no-sync` (which see)
-
-- error handling:
-  - `--errors {fail,skip,ignore}`
-  : when an error occurs:
-    - `fail`: report failure and stop the execution;
-    - `skip`: report failure, skip relevant inputs/outputs that produced it, and continue; default;
-    - `ignore`: don't report anything, skip skip relevant inputs/outputs that produced it, and continue;
-
-- path ordering:
-  - `--paths-given-order`
-  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
-  - `--paths-sorted`
-  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
-  - `--paths-reversed`
-  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
-  - `--walk-fs-order`
-  : recursive file system walk is done in the order `readdir(2)` gives results
-  - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order; default
-  - `--walk-reversed`
-  : recursive file system walk is done in reverse lexicographic order
-
-- input loading:
-  - `--load-any`
-  : for each given input `PATH`, decide which loader to use based on its file extension; default
-  - `--load-wrr`
-  : load all inputs using the single-`WRR` per-file loader
-  - `--load-wrrb`
-  : load all inputs using the `WRR` bundle loader, this will load separate `WRR` files as single-`WRR` bundles too
-  - `--load-mitmproxy`
-  : load inputs using the `mitmproxy` dump loader
-  - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after all `PATH`s specified as command-line arguments
-  - `PATH`
-  : inputs, can be a mix of files and directories (which will be traversed recursively)
-
-- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this subcommand this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
-  - `--sniff-default`
-  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
-  - `--sniff-force`
-  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
-  - `--sniff-paranoid`
-  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
-
-- file outputs:
-  - `-t, --to, --import-to OUTPUT_DESTINATION`
-  : destination directory; required
-  - `-o, --output OUTPUT_FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
-
-- to stdout, print paths of:
-  - `--print-updated, --print-updated-outputs`
-  : ... newly generated/updated `--output` files
-  - `--no-print`
-  : ... nothing at all; default
-
-- print those paths:
-  - `-l, --lf-terminated`
-  : ... by terminating them with `\n` (LF) newline characters; default
-  - `-z, --zero-terminated`
-  : ... by terminating them with `\0` (NUL) bytes
-
-#### hoardy-web import mitmproxy
-
-Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
+Internally, this in a slightly optimized alias for `hoardy-web organize --copy --cache 32 --batch 1024 --no-defer` (which see).
 
 - options:
   - `-h, --help`
