@@ -460,12 +460,6 @@ class DeferredSource(metaclass=_abc.ABCMeta):
         with self.get_fileobj() as f:
             return f.read()
 
-    def same_as(self, other: _t.Any) -> bool:  # pylint: disable=unused-argument
-        return False
-
-    def replaces(self, other: _t.Any) -> bool:  # pylint: disable=unused-argument
-        return True
-
 
 class UnknownSource(DeferredSource):
     def approx_size(self) -> int:
@@ -523,16 +517,6 @@ class FileSource(DeferredSource):
                 pass
             raise
         return fobj
-
-    def same_as(self, other: DeferredSource) -> bool:
-        if isinstance(other, FileSource) and unchanged_stat(self.stat, other.stat):
-            return True
-        return False
-
-    def replaces(self, other: DeferredSource) -> bool:
-        if isinstance(other, FileSource) and self.path == other.path:
-            return False
-        return True
 
 
 @_dc.dataclass
@@ -922,16 +906,6 @@ class ReqresExpr[Source: DeferredSource](DeferredSource, LinstEvaluator):
 
     def get_fileobj(self) -> _io.BufferedReader:
         return BytesIOReader(wrr_dumps(self.reqres))
-
-    def same_as(self, other: DeferredSource) -> bool:
-        if isinstance(other, ReqresExpr):
-            return self.source.same_as(other.source)
-        return self.source.same_as(other)
-
-    def replaces(self, other: DeferredSource) -> bool:
-        if isinstance(other, ReqresExpr):
-            return self.source.replaces(other.source)
-        return self.source.replaces(other)
 
     def _fill_time(self, prefix: str, ts: TimeStamp) -> None:
         dt = _time.gmtime(int(ts))

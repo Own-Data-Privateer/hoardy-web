@@ -1478,491 +1478,439 @@ variance_help = (
 )
 
 
-class DeferredOperation[Source: DeferredSource, AnyStr: (str, bytes)]:
-    """A deferred `source` -> `destination` operation with updatable `source`.
+def make_cached_emit[Source: DeferredSource, AnyStr: (
+    str,
+    bytes,
+)](
+    cargs: _t.Any,
+    action: str,
+    actioning: str,
+    action_op: _t.Callable[
+        [DeferredSource, Reqres, AnyStr, bool | _os.stat_result, bool | Deferred[AnyStr]], None
+    ],
+    destination: AnyStr,
+    output_format: AnyStr,
+    remove: bool,
+    symlink: bool,
+    ideal: TimeStamp | None,
+    allow_updates: bool,
+) -> tuple[_t.Callable[[ReqresExpr[Source]], None], _t.Callable[[], None]]:
+    """Wrap `action_op` with optional caching, operation deferring, stdio reporting, etc."""
 
-    This exists to help you to eliminatate away repeated `os.rename`,
-    `os.symlink`, etc calls to the same `destination` and to help
-    implementing disk writes batching.
-    """
+    on_error = select_on_error(cargs.errors)
 
-    source: Source
-    destination: AnyStr
+    dry_run: bool = cargs.dry_run
+    quiet: bool = cargs.quiet
+    terminator: bytes | None = None if dry_run else cargs.terminator
+    lazy: bool = cargs.lazy if cargs.lazy is not None else dry_run
+    defer: bool = cargs.defer
 
-    def __init__(
-        self,
-        source: Source,
-        destination: AnyStr,
-        overwrite: bool,
-        allow_updates: bool,
+    actioning_new = gettext(actioning)
+    removing = gettext("removing")
+    if dry_run:
+        actioning_new = gettext("dry-run: (not)") + " " + actioning_new
+        removing = gettext("dry-run: (not)") + " " + removing
+    actioning_over = actioning_new + " " + gettext("(overwrite)")
+
+    ftype: int = _stat.S_IFLNK if symlink else _stat.S_IFREG
+
+    class Mutable:
+        updated: int = 0
+
+    updated_files: list[AnyStr] = []
+    remove_files: list[FileSource] = []
+
+    max_cache: int = cargs.cache
+    max_batch = cargs.batch
+    max_memory: int = cargs.memory * 1024 * 1024
+
+    sync: bool | Deferred[AnyStr]
+    if max_batch > 0:
+        sync = Deferred(False)
+        flush_sync = sync.flush
+    else:
+        sync = True
+        flush_sync = noop
+
+    # a `list` of sources that need to be removed after this operation gets synced to disk
+    ToRemove = list[DeferredSource] | None
+
+    def queue_to_remove(path: AnyStr, to_remove: ToRemove) -> None:
+        if to_remove is not None:
+            for src in to_remove:
+                if isinstance(src, FileSource):
+                    remove_files.append(src)
+                else:
+                    mem.consumption -= src.approx_size()
+                    issue = Failure("don't know to remove the source, keeping it as-is").elaborate(
+                        f"while {actioning} `%s` -> `%s`",
+                        src.show_source(),
+                        fsdecode(path),
+                    )
+                    log_exception_warning(issue)
+
+    # a `bool` or `os.stat_result` of the file that should be overwritten
+    Overwrite = bool | _os.stat_result
+
+    def run_action(
+        source: DeferredSource,
+        reqres: Reqres,
+        path: AnyStr,
+        overwrite: Overwrite,
+        to_remove: ToRemove,
     ) -> None:
-        self.source = source
-        self.destination = destination
-        self.overwrite = overwrite
-        self.allow_updates = allow_updates
-        self.updated = False
+        """Run `action_op`, handling errors and logging/reporting things as needed."""
 
-    def approx_size(self) -> int:
-        return 48
+        if not quiet:
+            stderr.write_str(actioning_new if overwrite is False else actioning_over)
+            stderr.write_str(": `")
+            stderr.write(source.show_source())
+            stderr.write_str("` -> `")
+            stderr.write(path)
+            stderr.write_str_ln("`")
+            stderr.flush()
 
-    def switch_source(self, new_source: Source, force: bool = False) -> bool:
-        """Switch source of this operation.
+        try:
+            try:
+                if not dry_run:
+                    action_op(source, reqres, path, overwrite, sync)
+            except FileExistsError as exc:
+                raise Failure("destination changed between accesses") from exc
+            except OSError as exc:
+                handle_ENAMETOOLONG(exc, path)
+                if exc.errno == _errno.EXDEV:
+                    raise Failure(f"can't {action} across file systems") from exc
+                raise
+        except Failure as exc:
+            on_error(
+                exc.elaborate(
+                    f"while {actioning} `%s` -> `%s`", source.show_source(), fsdecode(path)
+                )
+            )
+        else:
+            Mutable.updated += 1
 
-        Returns `True` if this change was permitted.
-        """
-        if not force:
-            old_source = self.source
-            if (
-                not new_source.replaces(old_source)
-                or new_source.same_as(old_source)
-                or new_source.get_bytes() == old_source.get_bytes()
-            ):
-                return True
+            if terminator is not None:
+                updated_files.append(path)
+                mem.consumption += len(path)
 
-        if not self.allow_updates:
-            # updates are not allowed
-            return False
+            queue_to_remove(path, to_remove)
 
-        # update
-        self.source = new_source
-        self.updated = True
-        return True
+    # `fs_path -!> dirty?, source, reqres, overwrite?, to_remove | None`
+    # where `None` means "ignore this path"
+    cache: OrderedDict[
+        AnyStr,
+        tuple[bool, DeferredSource, Reqres, Overwrite, ToRemove] | None,
+    ] = OrderedDict()
 
-    def run(self, sync: Deferred[AnyStr] | bool = True) -> None:
-        """Write the `source` to `destination`."""
-        raise NotImplementedError()
+    def want_flush() -> bool:
+        return len(cache) > max_cache or mem.consumption > max_memory
+
+    def flush(final: bool) -> None:
+        """Flush `cache` and `sync` to disk."""
+
+        if want_flush() or final:
+            while len(cache) > 0:
+                path, el = cache.popitem(False)
+
+                if el is None:
+                    mem.consumption -= len(path)
+                    continue
+
+                dirty, source, reqres, overwrite, to_remove = el
+                mem.consumption -= len(path) + source.approx_size() + reqres.approx_size()
+
+                if dirty:
+                    run_action(source, reqres, path, overwrite, to_remove)
+                else:
+                    queue_to_remove(path, to_remove)
+
+                if want_flush() or final:
+                    continue
+                break
+
+        if Mutable.updated + len(remove_files) > max_batch or mem.consumption > max_memory or final:
+            flush_sync()
+
+            Mutable.updated = 0
+
+            if terminator is not None:
+                # report to stdout
+                for path in updated_files:
+                    mem.consumption -= len(path)
+                    stdout.write(path)
+                    stdout.write_bytes(terminator)
+                stdout.flush()
+                updated_files.clear()
+
+            if remove_files:
+                for src in remove_files:
+                    mem.consumption -= src.approx_size()
+                    epath = src.path
+
+                    if not quiet:
+                        stderr.write_str(removing)
+                        stderr.write_str(": `")
+                        stderr.write(epath)
+                        stderr.write_str_ln("`")
+                        stderr.flush()
+
+                    if not dry_run:
+                        try:
+                            unlink_file(fsreencode(epath, destination), src.stat, sync=sync)
+                        except (FileExistsError, FileNotFoundError):
+                            issue = Failure("`%s` changed between accesses", fsdecode(epath))
+                            log_exception_warning(issue)
+                remove_files.clear()
+
+                flush_sync()
+
+    def emit(new_rrexpr: ReqresExpr[Source]) -> None:
+        raise_first_delayed_signal()
+
+        new_source = new_rrexpr.source
+        new_reqres = new_rrexpr.reqres
+
+        new_rrexpr.values["num"] = 0
+        prev_rel_out_path = None
+        while True:
+            if isinstance(destination, str):
+                rel_out_path = _op.join(destination, output_format % new_rrexpr)
+            else:
+                rel_out_path = _op.join(destination, _os.fsencode(output_format % new_rrexpr))
+
+            # when `output_format` contains no `num`, `raise` the following `Failure` after all the
+            # `continue` statements below
+            if prev_rel_out_path == rel_out_path:
+                raise Failure("destination already exists" + variance_help)
+            prev_rel_out_path = rel_out_path
+
+            abs_out_path: AnyStr = _op.abspath(rel_out_path)
+
+            new_path: str | bytes | None = new_source.get_path()
+            if new_path is not None and equal_path(new_path, abs_out_path):
+                # moving, copying, hardlinking, symlinking, etc to the same path
+                #
+                # NB: this is a hot evaluation path of `organize --to src src` and similar
+                # subcommands, which is why we do this check early instead of delegating this to
+                # (sameSourceOrData) block
+                return
+
+            new_rrexpr.values["num"] += 1
+
+            def elaborate[F: CatastrophicFailure](failure: F) -> F:
+                return failure.elaborate(
+                    f"while {actioning} `%s` -> `%s`",
+                    new_source.show_source(),
+                    fsdecode(abs_out_path),
+                )
+
+            out_stat: _os.stat_result
+            have_old: bool = False
+            old_source: DeferredSource
+            old_reqres: Reqres
+            dirty: bool = False
+            to_remove: ToRemove = None
+            can_overwrite: bool = allow_updates
+            overwrite: Overwrite
+
+            try:
+                # load `abs_out_path` from the cache or from disk
+                try:
+                    old = cache[abs_out_path]
+                except KeyError:
+                    try:
+                        out_stat = _os.lstat(abs_out_path)
+                    except FileNotFoundError:
+                        can_overwrite = overwrite = False
+                    except OSError as exc:
+                        handle_ENAMETOOLONG(exc, abs_out_path)
+                        raise
+                    else:
+                        out_ftype = _stat.S_IFMT(out_stat.st_mode)
+                        if out_ftype != ftype:
+                            issue = Failure(
+                                "destination exists but has wrong file type: expected `%s`, got `%s`; re-trying with a different `num`",
+                                describe_file_type(ftype),
+                                describe_file_type(out_ftype),
+                            )
+                            log_exception_warning(elaborate(issue))
+                            continue
+
+                        is_symlink = _stat.S_ISLNK(out_stat.st_mode)
+                        real_out_path = _op.realpath(abs_out_path) if is_symlink else abs_out_path
+
+                        try:
+                            with open(real_out_path, "rb") as f:
+                                if is_symlink:
+                                    real_stat = _os.fstat(f.fileno())
+                                    old_source = FileSource(real_out_path, real_stat)
+                                else:
+                                    old_source = FileSource(abs_out_path, out_stat)
+                                old_reqres = wrr_load(f)
+                        except FileNotFoundError:
+                            issue = Failure(
+                                "destination is a broken symlink; treating it as a non-existent file"
+                            )
+                            log_exception_warning(elaborate(issue))
+                            # allow for this path only
+                            can_overwrite = True
+                            overwrite = out_stat
+                        except OSError as exc:
+                            handle_ENAMETOOLONG(exc, abs_out_path)
+                            raise
+                        except Failure as exc:
+                            log_exception_warning(elaborate(exc))
+                            # start ignoring this path
+                            cache[abs_out_path] = None
+                            mem.consumption += len(abs_out_path)
+                            continue
+                        else:
+                            overwrite = out_stat if can_overwrite else False
+                            cache[abs_out_path] = dirty, old_source, old_reqres, overwrite, to_remove  # fmt: skip
+                            mem.consumption += len(abs_out_path) + old_source.approx_size() + old_reqres.approx_size()  # fmt: skip
+                            have_old = True
+                else:
+                    cache.move_to_end(abs_out_path)
+                    if old is None:
+                        # ignored path
+                        return
+                    dirty, old_source, old_reqres, overwrite, to_remove = old
+                    have_old = True
+
+                # try to update it with `new_rrexpr`
+
+                is_noop = False
+
+                if have_old:
+                    if new_source == old_source or new_reqres == old_reqres:
+                        # (sameSourceOrData) Turn repeated operation with the same source, e.g.:
+                        #   `__prog__ organize --to dest src src`
+                        # or with duplicated data, e.g.:
+                        #   `__prog__ organize --to dest src copy-of-src`
+                        # into noops.
+                        is_noop = True
+                    elif ideal is not None:
+                        old_rrexpr = ReqresExpr(old_source, old_reqres)
+                        new_rrexpr = ReqresExpr(new_source, new_reqres)
+                        if is_closer(ideal, old_rrexpr.stime, new_rrexpr.stime):
+                            # Ignore worse `--nearest`, `--oldest`, and `--latest` versions.
+                            is_noop = True
+                    elif not can_overwrite:
+                        continue
+
+                if remove:
+                    # mark `new_source` for removal
+                    if to_remove is None:
+                        to_remove = []
+                    to_remove.append(new_source)
+                    mem.consumption += new_source.approx_size()
+
+                if is_noop:
+                    if not dirty:
+                        # improve efficiently by queuing removals eagerly in this case
+                        queue_to_remove(abs_out_path, to_remove)
+                        to_remove = None
+                    cache[abs_out_path] = dirty, old_source, old_reqres, overwrite, to_remove
+                    break
+
+                # perform this update or defer it into the cache
+                dirty = True
+
+                if not defer:
+                    # NB: using `can_overwrite` instead of `overwrite` here to save on `os.stat`,
+                    # since it would be equal to `out_stat` anyway
+                    run_action(new_source, new_reqres, abs_out_path, can_overwrite, to_remove)
+                    dirty = False
+                    to_remove = None
+
+                cache[abs_out_path] = dirty, new_source, new_reqres, overwrite, to_remove
+                if have_old:
+                    mem.consumption -= len(abs_out_path) + old_source.approx_size() + old_reqres.approx_size()  # fmt: skip
+                mem.consumption += len(abs_out_path) + new_source.approx_size() + new_reqres.approx_size()  # fmt: skip
+
+                break
+            except CatastrophicFailure as exc:
+                raise elaborate(exc)  # pylint: disable=raise-missing-from
+
+        if not lazy:
+            flush(False)
+
+    def finish() -> None:
+        flush(True)
+        if mem.consumption != 0:
+            _logging.warning("BUG: leaked %d bytes of RAM", mem.consumption)
+
+    return emit, finish
 
 
-class DeferredFileWrite[Source: DeferredSource, AnyStr: (str, bytes)](
-    DeferredOperation[Source, AnyStr]
-):
-    def approx_size(self) -> int:
-        return super().approx_size() + len(self.destination)
-
-    def run(self, sync: Deferred[AnyStr] | bool = True) -> None:
-        data = self.source.get_bytes()
-        if self.updated and file_data_equals(self.destination, data):
-            # nothing to do
-            return
-        write_file(data, self.destination, self.overwrite or self.allow_updates, sync=sync)
-
-
-def make_deferred_emit[Source: DeferredSource, AnyStr: (
+def make_organize_emit[Source: DeferredSource, AnyStr: (
     str,
     bytes,
 )](
     cargs: _t.Any,
     destination: AnyStr,
     output_format: AnyStr,
-    actioning: str,
-    defer: _t.Callable[
-        [ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr, bool, bool],
-        DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr],
-    ],
+    ideal: TimeStamp | None,
     allow_updates: bool,
-    moving: bool = False,
-    symlinking: bool = False,
 ) -> tuple[_t.Callable[[ReqresExpr[Source]], None], _t.Callable[[], None]]:
-    on_error = select_on_error(cargs.errors)
-
-    terminator: bytes | None = cargs.terminator if cargs.dry_run is not None else None
-
-    # for each `--output` value, how many times it was seen
-    seen_counter: SeenCounter[AnyStr] = SeenCounter()
-
-    # ReqresExpr cache indexed by destination path, this exists mainly
-    # to minimize the number of calls to `stat`.
-    rrexpr_cache: OrderedDict[AnyStr, ReqresExpr[FileSource] | ReqresExpr[Source]] = OrderedDict()
-
-    # Deferred IO operations (aka "intents") that are yet to be executed,
-    # indexed by filesystem paths. This is used both as a queue and as an
-    # LRU-cache so that, e.g. repeated updates to the same output file would be
-    # computed in memory.
-    deferred: OrderedDict[
-        AnyStr,
-        DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr],
-    ] = OrderedDict()
-
-    # Deferred file system updates. This collects references to everything
-    # that should be fsynced to disk before proceeding to make flush_updates
-    # below both atomic and efficient.
-    sync: Deferred[AnyStr] = Deferred(True)
-
-    max_memory_mib = cargs.max_memory * 1024 * 1024
-
-    def flush_updates(final: bool) -> None:
-        """Flush some of the queue."""
-        max_deferred: int = cargs.max_deferred if not final else 0
-        max_memory: int = max_memory_mib if not final else 0
-        max_seen: int = cargs.max_seen
-        max_cached: int = cargs.max_cached
-        max_batched: int = cargs.max_batched
-
-        num_deferred = len(deferred)
-        num_cached = len(rrexpr_cache)
-        num_seen = len(seen_counter)
-        if (
-            num_deferred <= max_deferred
-            and num_cached <= max_cached
-            and num_seen <= max_seen
-            and mem.consumption <= max_memory
-        ):
-            return
-
-        done_files: list[AnyStr] | None = None
-        if terminator is not None:
-            done_files = []
-
-        def run_intent(
-            abs_out_path: AnyStr,
-            intent: DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr],
-        ) -> None:
-            mem.consumption -= intent.approx_size() + len(abs_out_path)
-            rrexpr = intent.source
-
-            if not cargs.quiet:
-                if cargs.dry_run:
-                    ing = gettext(f"dry-run: (not) {actioning}")
-                else:
-                    ing = gettext(actioning)
-
-                stderr.write_str(ing)
-                stderr.write_str(": `")
-                stderr.write(rrexpr.show_source())
-                stderr.write_str("` -> `")
-                stderr.write(abs_out_path)
-                stderr.write_str_ln("`")
-                stderr.flush()
-
-            try:
-                if not cargs.dry_run:
-                    intent.run(sync)
-            except Failure as exc:
-                on_error(
-                    exc.elaborate(
-                        f"while {actioning} `%s` -> `%s`",
-                        rrexpr.show_source(),
-                        fsdecode(abs_out_path),
-                    )
-                )
-                return
-
-            if done_files is not None:
-                done_files.append(abs_out_path)
-
-            old_rrexpr = rrexpr_cache.pop(abs_out_path, None)
-            if old_rrexpr is not None:
-                mem.consumption -= len(abs_out_path)
-            rrexpr_cache[abs_out_path] = rrexpr
-            mem.consumption += len(abs_out_path)
-
-        # flush seen cache
-        while num_seen > 0 and (num_seen > max_seen or mem.consumption > max_memory):
-            abs_out_path, _ = seen_counter.pop()
-            num_seen -= 1
-
-            # if we are over the `--seen-number` not only we must forget
-            # about older files, we must also run all operations on the paths
-            # we are eliminating so that later deferredIO could pick up newly
-            # created files and number them properly
-            intent = deferred.pop(abs_out_path, None)
-            if intent is None:
-                continue
-            run_intent(abs_out_path, intent)
-            num_deferred -= 1
-            del intent
-
-        if (
-            not final
-            and num_deferred <= max_deferred + max_batched
-            and mem.consumption <= max_memory
-        ):
-            # we have enough resources to delay some more deferredIO, let's do
-            # so, so that when we finally hit our resource limits, we would
-            # execute max_batched or more deferred actions at once. this
-            # improves IO performance by a lot
-            max_deferred += max_batched
-
-        # flush deferred
-        while num_deferred > 0 and (num_deferred > max_deferred or mem.consumption > max_memory):
-            abs_out_path, intent = deferred.popitem(False)
-            run_intent(abs_out_path, intent)
-            num_deferred -= 1
-
-        # fsync everything
-        sync.flush()
-
-        # report to stdout
-        if terminator is not None and done_files is not None:
-            for abs_out_path in done_files:
-                stdout.write(abs_out_path)
-                stdout.write_bytes(terminator)
-
-            stdout.flush()
-            fsync_maybe(stdout.fobj.fileno())
-
-        # flush rrexpr_cache
-        while num_cached > 0 and (num_cached > max_cached or mem.consumption > max_memory):
-            abs_out_path, _source = rrexpr_cache.popitem(False)
-            num_cached -= 1
-            mem.consumption -= len(abs_out_path)
-
-    def finish_updates() -> None:
-        """Flush all of the queue."""
-        flush_updates(True)
-        assert mem.consumption == 0
-
-    def load_defer(
-        prev_rrexpr: ReqresExpr[FileSource] | ReqresExpr[Source] | None,
-        new_rrexpr: ReqresExpr[FileSource] | ReqresExpr[Source],
-        abs_out_path: AnyStr,
-    ) -> tuple[
-        bool,
-        ReqresExpr[FileSource] | ReqresExpr[Source] | None,
-        DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr] | None,
-    ]:
-        new_source = new_rrexpr.source
-        if isinstance(new_source, FileSource) and new_source.path == abs_out_path:
-            # hot evaluation path: moving, copying, hardlinking, symlinking, etc to itself
-            # this is a noop
-            return True, prev_rrexpr, None
-
-        old_rrexpr: ReqresExpr[_t.Any]
-        if prev_rrexpr is None:
-            try:
-                out_lstat = _os.lstat(abs_out_path)
-            except FileNotFoundError:
-                # target does not exist
-                return True, new_rrexpr, defer(new_rrexpr, abs_out_path, False, allow_updates)
-            except OSError as exc:
-                handle_ENAMETOOLONG(exc, abs_out_path)
-                raise
-
-            if _stat.S_ISLNK(out_lstat.st_mode):
-                # abs_out_path is a symlink
-                try:
-                    # check symlink target is reachable
-                    out_stat = _os.stat(abs_out_path)
-                except FileNotFoundError:
-                    # target is a broken symlink
-                    return (
-                        True,
-                        new_rrexpr,
-                        defer(new_rrexpr, abs_out_path, True, allow_updates),
-                    )
-
-                if not allow_updates and not symlinking:
-                    raise Failure("destination exists and is a symlink" + not_allowed)
-
-                # get symlink target and use it as abs_out_path, thus
-                # (SETSRC) below will re-create the original source
-                abs_in_path = _op.realpath(abs_out_path)
-
-                if isinstance(new_source, FileSource) and new_source.path == abs_out_path:
-                    # similarly to the above
-                    return True, prev_rrexpr, None
-            elif not allow_updates and symlinking:
-                raise Failure("destination exists and is not a symlink" + not_allowed)
-            else:
-                out_stat = out_lstat
-                abs_in_path = abs_out_path
-
-            # (SETSRC)
-            old_rrexpr = rrexpr_wrr_loadf(abs_in_path, out_stat)
-            old_rrexpr.sniff = cargs.sniff
-        else:
-            old_rrexpr = prev_rrexpr
-
-        intent = defer(old_rrexpr, abs_out_path, False, allow_updates)
-        permitted = intent.switch_source(new_rrexpr, moving)
-        return permitted, intent.source, (intent if intent.source is not old_rrexpr else None)
-
-    def emit(new_rrexpr: ReqresExpr[Source]) -> None:
-        raise_first_delayed_signal()
-
-        new_rrexpr.values["num"] = 0
-        def_out_path = output_format % new_rrexpr
-        prev_rel_out_path = None
-        while True:
-            new_rrexpr.values["num"] = seen_counter.count(def_out_path)
-            if isinstance(destination, str):
-                rel_out_path = _op.join(destination, output_format % new_rrexpr)
-            else:
-                rel_out_path = _op.join(destination, _os.fsencode(output_format % new_rrexpr))
-            abs_out_path: AnyStr = _op.abspath(rel_out_path)
-
-            old_rrexpr: ReqresExpr[FileSource] | ReqresExpr[Source] | None
-            old_rrexpr = rrexpr_cache.pop(abs_out_path, None)
-            if old_rrexpr is not None:
-                mem.consumption -= len(abs_out_path)
-
-            updated_rrexpr: ReqresExpr[FileSource] | ReqresExpr[Source] | None
-            intent: DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr] | None
-            intent = deferred.pop(abs_out_path, None)
-            if intent is None:
-                try:
-                    permitted, updated_rrexpr, intent = load_defer(
-                        old_rrexpr, new_rrexpr, abs_out_path
-                    )
-                except Failure as exc:
-                    raise exc.elaborate(
-                        f"while {actioning} `%s` -> `%s`",
-                        new_rrexpr.show_source(),
-                        fsdecode(abs_out_path),
-                    )
-
-                if updated_rrexpr is not None:
-                    updated_rrexpr.unload()
-            else:
-                mem.consumption -= intent.approx_size() + len(abs_out_path)
-                permitted = intent.switch_source(new_rrexpr, moving)  # (switchSource)
-                updated_rrexpr = intent.source
-
-            del old_rrexpr
-
-            if intent is not None:
-                deferred[abs_out_path] = intent
-                mem.consumption += intent.approx_size() + len(abs_out_path)
-
-            if updated_rrexpr is not None:
-                rrexpr_cache[abs_out_path] = updated_rrexpr
-                mem.consumption += len(abs_out_path)
-
-            if not permitted:
-                if prev_rel_out_path == rel_out_path:
-                    raise Failure("destination already exists" + variance_help).elaborate(
-                        f"while {actioning} `%s` -> `%s`",
-                        new_rrexpr.show_source(),
-                        fsdecode(abs_out_path),
-                    )
-                prev_rel_out_path = rel_out_path
-                continue
-
-            if intent is None:
-                # noop
-                if terminator is not None:
-                    stdout.write(abs_out_path)
-                    stdout.write_bytes(terminator)
-
-            break
-
-        if not cargs.lazy:
-            flush_updates(False)
-
-    return emit, finish_updates
-
-
-def make_organize_emit[Source: DeferredSource, AnyStr: (
-    str,
-    bytes,
-)](cargs: _t.Any, destination: AnyStr, output_format: AnyStr, allow_updates: bool) -> tuple[
-    _t.Callable[[ReqresExpr[Source]], None], _t.Callable[[], None]
-]:
-    action_op: _t.Any
     action = cargs.action
-    if allow_updates:
-        actioning = "updating " + action
-    else:
-        actioning = action + "ing"
-    moving = False
-    copying = False
-    symlinking = False
-    check_data = True
+    actioning = action + "ing"
+
+    subaction_op: _t.Any
+    remove = False
+    copy = False
+    symlink = False
+
     if action == "move":
-        actioning = "moving"
-        action_op = move_file
-        moving = True
+        actioning = "cloning"
+        subaction_op = link_or_clone_file
+        remove = True
     elif action == "copy":
-        action_op = clone_file
-        copying = True
+        subaction_op = clone_file
+        copy = True
     elif action == "hardlink":
-        action_op = link_file
+        subaction_op = link_file
     elif action == "symlink":
-        action_op = symlink_file
-        check_data = False
-        symlinking = True
+        subaction_op = symlink_file
+        symlink = True
     else:
         assert False
 
-    class DeferredOrganize[Source2: DeferredSource, AnyStr2: (str, bytes)](
-        DeferredFileWrite[ReqresExpr[FileSource] | ReqresExpr[Source2], AnyStr2]
-    ):
-        def switch_source(
-            self,
-            new_rrexpr: ReqresExpr[FileSource] | ReqresExpr[Source2],
-            force: bool = False,
-        ) -> bool:
-            old_rrexpr = self.source
-            old_source = old_rrexpr.source
-            new_source = new_rrexpr.source
+    def action_op(
+        source: DeferredSource,
+        reqres: Reqres,
+        path: AnyStr,
+        overwrite: bool | _os.stat_result,
+        sync: bool | Deferred[AnyStr],
+    ) -> None:
+        if isinstance(source, FileSource):
+            subaction_op(source.path, path, allow_overwrites=overwrite, sync=sync)
+        elif copy:
+            write_file(wrr_dumps(reqres), path, allow_overwrites=overwrite, sync=sync)
+        else:
+            raise Failure(
+                f"can't {action} the source to the destination because the source is not stored as a separate WRR file; did you mean to run with `--copy` intead of `--{action}`?"
+            )
 
-            if not force:
-                if (
-                    not new_source.replaces(old_source)
-                    or new_source.same_as(old_source)
-                    or check_data
-                    and new_rrexpr.get_bytes() == old_rrexpr.get_bytes()
-                ):
-                    # noop
-                    return True
-
-            if not self.allow_updates:
-                # updates are not allowed
-                return False
-
-            if old_rrexpr.stime > new_rrexpr.stime:
-                # ours is newer
-                return True
-
-            # update
-            self.source = new_rrexpr
-            self.updated = True
-            return True
-
-        def run(self, sync: Deferred[AnyStr2] | bool = True) -> None:
-            rrexpr = self.source
-            source = rrexpr.source
-            if isinstance(source, FileSource) and source.path == self.destination:
-                # noop, this could happen after (switchSource)
-                return
-
-            try:
-                if isinstance(source, FileSource):
-                    action_op(
-                        source.path,
-                        self.destination,
-                        self.overwrite or self.allow_updates,
-                        sync=sync,
-                    )
-                elif copying:
-                    # fallback to DeferredFileWrite in this case
-                    super().run(sync)  # type: ignore
-                else:
-                    raise Failure(
-                        f"can't {action} the source to the destination because the source is not stored as a separate WRR file; did you mean to run with `--copy` intead of `--{action}`?"
-                    )
-            except FileExistsError as exc:
-                raise Failure("`%s` already exists", self.destination) from exc
-            except OSError as exc:
-                handle_ENAMETOOLONG(exc, self.destination)
-                if exc.errno == _errno.EXDEV:
-                    raise Failure(f"can't {action} across file systems") from exc
-                raise
-
-    return make_deferred_emit(
+    return make_cached_emit(
         cargs,
+        action,
+        actioning,
+        action_op,
         destination,
         output_format,
-        actioning,
-        DeferredOrganize,
+        remove,
+        symlink,
+        ideal,
         allow_updates,
-        moving,
-        symlinking,
     )
 
 
 def cmd_organize(cargs: _t.Any) -> None:
-    allow_updates_is_safe = cargs.action == "symlink" and cargs.latest
+    ideal: TimeStamp | None = cargs.mode[1]
+
+    allow_updates_is_safe = cargs.action == "symlink" and ideal is not None
     allow_updates: bool | Missing = cargs.allow_updates
     if isinstance(allow_updates, Missing):
         allow_updates = allow_updates_is_safe
@@ -1973,20 +1921,20 @@ def cmd_organize(cargs: _t.Any) -> None:
         )
 
     if cargs.walk_paths is None:
-        cargs.walk_paths = WalkOrder.REVERSE if cargs.latest else WalkOrder.NONE
+        cargs.walk_paths = WalkOrder.REVERSE if ideal == anytime.end else WalkOrder.NONE
     if cargs.walk_fs is None:
-        cargs.walk_fs = WalkOrder.REVERSE if cargs.latest else WalkOrder.SORT
+        cargs.walk_fs = WalkOrder.REVERSE if ideal == anytime.end else WalkOrder.SORT
 
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
     rrexprs_load = make_rrexprs_load(cargs)
     handle_paths(cargs)
-    emit: EmitFunc[ReqresExpr[FileSource]]
+    emit: EmitFunc[ReqresExpr[_t.Any]]
     if cargs.destination is not None:
         # destination is set explicitly
         emit, finish = make_organize_emit(
-            cargs, _op.expanduser(cargs.destination), output_format, cargs.allow_updates
+            cargs, _op.expanduser(cargs.destination), output_format, ideal, allow_updates
         )
         try:
             load_and_emit_many(cargs, rrexprs_load, filters_allow, emit, cargs.paths)
@@ -2006,7 +1954,7 @@ def cmd_organize(cargs: _t.Any) -> None:
                 raise Failure("`%s` is not a directory but no `--to` is specified", exp_path)
 
         for exp_path in cargs.paths:
-            emit, finish = make_organize_emit(cargs, exp_path, output_format, False)
+            emit, finish = make_organize_emit(cargs, exp_path, output_format, ideal, False)
             try:
                 load_and_emit_many(cargs, rrexprs_load, filters_allow, emit, [exp_path])
             finally:
@@ -2023,14 +1971,33 @@ def cmd_import_generic[Source: DeferredSource](
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
+    def action_op[AnyStr: (
+        str,
+        bytes,
+    )](
+        source: DeferredSource,
+        reqres: Reqres,
+        path: AnyStr,
+        overwrite: bool | _os.stat_result,
+        sync: bool | Deferred[AnyStr],
+    ) -> None:
+        if isinstance(source, FileSource):
+            clone_file(source.path, path, allow_overwrites=overwrite, sync=sync)
+        else:
+            write_file(wrr_dumps(reqres), path, allow_overwrites=overwrite, sync=sync)
+
     handle_paths(cargs)
     emit: EmitFunc[ReqresExpr[Source]]
-    emit, finish = make_deferred_emit(
+    emit, finish = make_cached_emit(
         cargs,
+        "import",
+        "importing",
+        action_op,
         _op.expanduser(cargs.destination),
         output_format,
-        "importing",
-        DeferredFileWrite,
+        False,
+        False,
+        None,
         False,
     )
     try:
@@ -3633,7 +3600,7 @@ if other parts of the date are not specified, they get substituted from `<year>-
 
     def add_impure(cmd: _t.Any) -> None:
         cmd.add_argument("--dry-run", action="store_true",
-            help=_("perform a trial run without actually performing any changes"),
+            help= _("perform a trial run without actually performing any changes"),
         )
         cmd.add_argument("-q", "--quiet", action="store_true",
             help=_("don't log file updates and don't print end-of-filtering warnings to stderr"),
@@ -4123,37 +4090,54 @@ The end.
     cmd.set_defaults(sniff=SniffContentType.NONE)
     cmd.set_defaults(func=cmd_find)
 
-    def add_organize_memory(cmd: _t.Any, max_deferred: int = 1024, max_batch: int = 128) -> None:
-        agrp = cmd.add_argument_group("caching, deferring, and batching")
-        agrp.add_argument("--seen-number", metavar="INT", dest="max_seen", type=int, default=16384,
-            help=_(f"""track at most this many distinct generated `--output` values; default: `%(default)s`;
-making this larger improves disk performance at the cost of increased memory consumption;
-setting it to zero will force force `{__prog__}` to constantly re-check existence of `--output` files and force `{__prog__}` to execute  all IO actions immediately, disregarding `--defer-number` setting"""),
+    def add_organize(cmd: _t.Any, kind: str, cache: int = 8192, batch: int = 128) -> None:
+        agrp = cmd.add_argument_group("caching")
+        agrp.add_argument("--cache", "--cache-number", metavar="INT", type=int, default=cache,
+            help=_("cache at most this many output paths in RAM; default: `%(default)s`")
         )
-        agrp.add_argument("--cache-number", metavar="INT", dest="max_cached", type=int, default=8192,
-            help=_(f"""cache `stat(2)` information about this many files in memory; default: `%(default)s`;
-making this larger improves performance at the cost of increased memory consumption;
-setting this to a too small number will likely force `{__prog__}` into repeatedly performing lots of `stat(2)` system calls on the same files;
-setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
-"""),
+        agrp.add_argument("--batch", "--batch-number", metavar="INT", type=int, default=batch,
+            help=_("""batch at most this many file system operations (`write`s, `fsync`s, `--move`-related `unlink`s, etc); default: `%(default)s`;
+which is to say that `--batch 0` forces all file system operations to be performed immediately;
+meanwhile, `--batch N` for `N > 0` enables batching of file system operations, which, in most situations, greatly improves observed program performance, since batching greatly reduces the number of needed directory `fsync`s"""),
         )
-        agrp.add_argument("--defer-number", metavar="INT", dest="max_deferred", type=int, default=max_deferred,
-            help=_("""defer at most this many IO actions; default: `%(default)s`;
-making this larger improves performance at the cost of increased memory consumption;
-setting it to zero will force all IO actions to be applied immediately"""),
+        agrp.add_argument("--memory", "--max-memory", metavar="INT", type=int, default=1024,
+            help=_("while applying the above settings, try to limit total memory consumption to this value, in MiB; default: `%(default)s`"),
         )
-        agrp.add_argument("--batch-number", metavar="INT", dest="max_batched", type=int, default=max_batch,
-            help=_("""queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: `%(default)s`"""),
+        grp = agrp.add_mutually_exclusive_group()
+        grp.add_argument("--lazy", dest="lazy", action="store_true",
+            help=(
+                _("set all of the options above to positive infinities; default when `--dry-run` is set")
+                + ";\n"
+                + _(f"""in other words, compute everything in RAM and then write the results to disk in a single batch;
+useful for `{__prog__} organize --symlink --latest --output flat` and similar in cases when the number of inputs is large, the number of distinct `--output` values is small, you have enough RAM to do everything in-memory, and you want to minimize writes to disk;
+default when `--dry-run` is set because otherwise the results of a run with `--dry-run` will differ from a normal run since some non-run updates could be emitted from cache""")
+            ),
         )
-        agrp.add_argument("--max-memory", metavar="INT", dest="max_memory", type=int, default=1024,
-            help=_("""the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `%(default)s`;
-making this larger improves performance;
-the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`"""),
+        grp.add_argument("--no-lazy", dest="lazy", action="store_false",
+            help=_("use the above values, even if `--dry-run` is set; default when `--dry-run` is not set"),
         )
-        agrp.add_argument("--lazy", action="store_true",
-            help=_(f"""sets all of the above options to positive infinity;
-most useful when doing `{__prog__} organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `{__prog__}` needs to keep in memory is small, in which case it will force `{__prog__}` to compute the desired file system state first and then perform all disk writes in a single batch"""),
+        cmd.set_defaults(lazy=None)
+
+        is_organize = kind == "organize"
+
+        agrp = cmd.add_argument_group("deferring")
+        grp = agrp.add_mutually_exclusive_group()
+        grp.add_argument("--defer", dest="defer", action="store_true",
+            help=(
+                _("defer all updates into the cache and perform them as cache elements get evicted")
+                + (_("; default unless `--dry-run` is set") if is_organize else "")
+            ),
         )
+        grp.add_argument("--no-defer", dest="defer", action="store_false",
+            help=(
+                _("perform all updates eagerly, never deferring them into the cache")
+                + (_("; default unless `--dry-run` is set") if not is_organize else "")
+                + ";\n"
+                + _("""in other words, force output files to be batched for writing in the order their respective reqres appear among the given `INPUT`s;
+note that this option being set does note imply that the resulting file system operations will be performed immediately, to force that this option needs to be combined with `--batch 0` or `--no-sync` (which see)""")
+            ),
+        )
+        cmd.set_defaults(defer=is_organize)
 
     def add_fileout(cmd: _t.Any, kind: str) -> None:
         if kind == "serve":
@@ -4234,16 +4218,9 @@ source a    nd destination file directories can be the same (set so explicitly o
                     ),
                 )
                 grp.add_argument("--overwrite", dest="allow_updates", action="store_true",
-                    help=_("overwrite old files under `OUTPUT_DESTINATION`; default when running with `--symlink` combined with `--latest`"),
+                    help=_("overwrite old files under `OUTPUT_DESTINATION`; default when running with `--symlink` combined with anything other than `--all`"),
                 )
                 cmd.set_defaults(allow_updates=MISSING)
-
-                agrp.add_argument("--latest", dest="latest", action="store_true",
-                    help=_("""replace files under `OUTPUT_DESTINATION` with their latest version;
-this is     only allowed in combination with `--symlink` at the moment;
-for each     source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
-"""),
-                )
             else:
                 grp.add_argument("--skip-existing", "--no-overwrite", dest="allow_updates", action="store_false",
                     help=(
@@ -4362,7 +4339,7 @@ Operations that could lead to accidental data loss are not permitted.
 E.g., the default `{__prog__} organize --move` will not overwrite any files, which is why the default `--output` format contains the `num` substitution.
 """),
     )
-    add_organize_memory(cmd)
+    add_organize(cmd, "organize")
     add_impure(cmd)
     add_common(cmd, "organize", "organize reqres when")
 
@@ -4384,10 +4361,13 @@ E.g., the default `{__prog__} organize --move` will not overwrite any files, whi
 
     add_fileout(cmd, "organize")
 
+    # `--all` is the default
+    add_mode(cmd, "organize", "into each `--output` path, write", (False, None))
+
     cmd.set_defaults(func=cmd_organize)
 
     def add_import_args(cmd: _t.Any) -> None:
-        add_organize_memory(cmd, 0, 1024)
+        add_organize(cmd, "import", 32, 1024)
         add_impure(cmd)
         add_common(cmd, "import", "import reqres when")
         add_fileout(cmd, "import")
@@ -4396,7 +4376,8 @@ E.g., the default `{__prog__} organize --move` will not overwrite any files, whi
     supcmd = subparsers.add_parser("import",
         help=_("convert other `HTTP` archive formats into `WRR`"),
         description=_(f"""Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
-In short, this is `{__prog__} organize --copy` for `INPUT` files that use different files formats."""),
+
+Internally, this is an alias for `{__prog__} organize --copy --cache 32 --batch 1024 --no-defer` for `INPUT` files that use different files formats."""),
     )
     supsub = supcmd.add_subparsers(title="file formats")
 

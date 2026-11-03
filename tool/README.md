@@ -374,7 +374,7 @@ hoardy-web organize --copy --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.wrrb
 ```
 
-In fact, internally, `hoardy-web import bundle` is actually an alias for `hoardy-web organize --copy --load-wrrb --defer-number 0`.
+In fact, internally, `hoardy-web import bundle` is actually a slightly optimized alias for `hoardy-web organize --load-wrrb --copy` configured to assume that its inputs will contain almost no duplicated reqres.
 
 ## <span id="filter"/>Find and filter things
 
@@ -1808,29 +1808,30 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
   - `-q, --quiet`
   : don't log file updates and don't print end-of-filtering warnings to stderr
 
-- caching, deferring, and batching:
-  - `--seen-number INT`
-  : track at most this many distinct generated `--output` values; default: `16384`;
-    making this larger improves disk performance at the cost of increased memory consumption;
-    setting it to zero will force force `hoardy-web` to constantly re-check existence of `--output` files and force `hoardy-web` to execute  all IO actions immediately, disregarding `--defer-number` setting
-  - `--cache-number INT`
-  : cache `stat(2)` information about this many files in memory; default: `8192`;
-    making this larger improves performance at the cost of increased memory consumption;
-    setting this to a too small number will likely force `hoardy-web` into repeatedly performing lots of `stat(2)` system calls on the same files;
-    setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
-  - `--defer-number INT`
-  : defer at most this many IO actions; default: `1024`;
-    making this larger improves performance at the cost of increased memory consumption;
-    setting it to zero will force all IO actions to be applied immediately
-  - `--batch-number INT`
-  : queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: `128`
-  - `--max-memory INT`
-  : the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `1024`;
-    making this larger improves performance;
-    the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`
+- caching:
+  - `--cache, --cache-number INT`
+  : cache at most this many output paths in RAM; default: `8192`
+  - `--batch, --batch-number INT`
+  : batch at most this many file system operations (`write`s, `fsync`s, `--move`-related `unlink`s, etc); default: `128`;
+    which is to say that `--batch 0` forces all file system operations to be performed immediately;
+    meanwhile, `--batch N` for `N > 0` enables batching of file system operations, which, in most situations, greatly improves observed program performance, since batching greatly reduces the number of needed directory `fsync`s
+  - `--memory, --max-memory INT`
+  : while applying the above settings, try to limit total memory consumption to this value, in MiB; default: `1024`
   - `--lazy`
-  : sets all of the above options to positive infinity;
-    most useful when doing `hoardy-web organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `hoardy-web` needs to keep in memory is small, in which case it will force `hoardy-web` to compute the desired file system state first and then perform all disk writes in a single batch
+  : set all of the options above to positive infinities; default when `--dry-run` is set;
+    in other words, compute everything in RAM and then write the results to disk in a single batch;
+    useful for `hoardy-web organize --symlink --latest --output flat` and similar in cases when the number of inputs is large, the number of distinct `--output` values is small, you have enough RAM to do everything in-memory, and you want to minimize writes to disk;
+    default when `--dry-run` is set because otherwise the results of a run with `--dry-run` will differ from a normal run since some non-run updates could be emitted from cache
+  - `--no-lazy`
+  : use the above values, even if `--dry-run` is set; default when `--dry-run` is not set
+
+- deferring:
+  - `--defer`
+  : defer all updates into the cache and perform them as cache elements get evicted; default unless `--dry-run` is set
+  - `--no-defer`
+  : perform all updates eagerly, never deferring them into the cache;
+    in other words, force output files to be batched for writing in the order their respective reqres appear among the given `INPUT`s;
+    note that this option being set does note imply that the resulting file system operations will be performed immediately, to force that this option needs to be combined with `--batch 0` or `--no-sync` (which see)
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -2405,11 +2406,7 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
     in all o    ther cases, existing destination files will be skipped, the `num` substitution value will be incremented, a new `--output` file path will be generated, and the operation will be retried with that new path;
     source a    nd destination file directories can be the same (set so explicitly or via unset `--to`), in which case each source file will simply be renamed to use its new `--output` name, though renames that attempt to swap files will fail
   - `--overwrite`
-  : overwrite old files under `OUTPUT_DESTINATION`; default when running with `--symlink` combined with `--latest`
-  - `--latest`
-  : replace files under `OUTPUT_DESTINATION` with their latest version;
-    this is     only allowed in combination with `--symlink` at the moment;
-    for each     source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
+  : overwrite old files under `OUTPUT_DESTINATION`; default when running with `--symlink` combined with anything other than `--all`
   - `--please-destroy-my-data`
   : permit `--overwrite` usage even when it can loose your data; **DANGEROUS!**
 
@@ -2421,10 +2418,26 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
   - `--no-print`
   : ... not at all; default
 
+- into each `--output` path, write:
+  - `--all`
+  : ... all available reqres
+  - `--nearest DATETIME`
+  : ... a reqres that is closest to the given `DATETIME` value; the `DATETIME` uses the same format as the `--before` option above (which see), except if some parts of the date are not specified, the `DATETIME` is instead parsed as a time interval and the middle point of that interval is then taken as the resulting value, e.g.:
+    - `2024` becomes `2024-07-02 00:00:00` (which is the exact middle point of that year),
+    - `2024-12-31` becomes `2024-12-31 12:00:00`,
+    - `2024-12-31 10` becomes `2024-12-31 10:30:00`,
+    - `2024-12-31 10:01` becomes `2024-12-31 10:01:30`,
+    - `2024-12-31 10:01:02` becomes `2024-12-31 10:01:02.5`;
+  - `--oldest`
+  : ... its oldest available reqres; an alias for `--nearest @-inf` (which see)
+  - `--latest`
+  : ... its latest available reqres; an alias for `--nearest @+inf` (which see)
+
 ### hoardy-web import
 
 Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
-In short, this is `hoardy-web organize --copy` for `INPUT` files that use different files formats.
+
+Internally, this is an alias for `hoardy-web organize --copy --cache 32 --batch 1024 --no-defer` for `INPUT` files that use different files formats.
 
 - options:
   - `-h, --help`
@@ -2453,29 +2466,30 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   - `-q, --quiet`
   : don't log file updates and don't print end-of-filtering warnings to stderr
 
-- caching, deferring, and batching:
-  - `--seen-number INT`
-  : track at most this many distinct generated `--output` values; default: `16384`;
-    making this larger improves disk performance at the cost of increased memory consumption;
-    setting it to zero will force force `hoardy-web` to constantly re-check existence of `--output` files and force `hoardy-web` to execute  all IO actions immediately, disregarding `--defer-number` setting
-  - `--cache-number INT`
-  : cache `stat(2)` information about this many files in memory; default: `8192`;
-    making this larger improves performance at the cost of increased memory consumption;
-    setting this to a too small number will likely force `hoardy-web` into repeatedly performing lots of `stat(2)` system calls on the same files;
-    setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
-  - `--defer-number INT`
-  : defer at most this many IO actions; default: `0`;
-    making this larger improves performance at the cost of increased memory consumption;
-    setting it to zero will force all IO actions to be applied immediately
-  - `--batch-number INT`
-  : queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: `1024`
-  - `--max-memory INT`
-  : the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `1024`;
-    making this larger improves performance;
-    the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`
+- caching:
+  - `--cache, --cache-number INT`
+  : cache at most this many output paths in RAM; default: `32`
+  - `--batch, --batch-number INT`
+  : batch at most this many file system operations (`write`s, `fsync`s, `--move`-related `unlink`s, etc); default: `1024`;
+    which is to say that `--batch 0` forces all file system operations to be performed immediately;
+    meanwhile, `--batch N` for `N > 0` enables batching of file system operations, which, in most situations, greatly improves observed program performance, since batching greatly reduces the number of needed directory `fsync`s
+  - `--memory, --max-memory INT`
+  : while applying the above settings, try to limit total memory consumption to this value, in MiB; default: `1024`
   - `--lazy`
-  : sets all of the above options to positive infinity;
-    most useful when doing `hoardy-web organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `hoardy-web` needs to keep in memory is small, in which case it will force `hoardy-web` to compute the desired file system state first and then perform all disk writes in a single batch
+  : set all of the options above to positive infinities; default when `--dry-run` is set;
+    in other words, compute everything in RAM and then write the results to disk in a single batch;
+    useful for `hoardy-web organize --symlink --latest --output flat` and similar in cases when the number of inputs is large, the number of distinct `--output` values is small, you have enough RAM to do everything in-memory, and you want to minimize writes to disk;
+    default when `--dry-run` is set because otherwise the results of a run with `--dry-run` will differ from a normal run since some non-run updates could be emitted from cache
+  - `--no-lazy`
+  : use the above values, even if `--dry-run` is set; default when `--dry-run` is not set
+
+- deferring:
+  - `--defer`
+  : defer all updates into the cache and perform them as cache elements get evicted
+  - `--no-defer`
+  : perform all updates eagerly, never deferring them into the cache; default unless `--dry-run` is set;
+    in other words, force output files to be batched for writing in the order their respective reqres appear among the given `INPUT`s;
+    note that this option being set does note imply that the resulting file system operations will be performed immediately, to force that this option needs to be combined with `--batch 0` or `--no-sync` (which see)
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -2548,29 +2562,30 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `-q, --quiet`
   : don't log file updates and don't print end-of-filtering warnings to stderr
 
-- caching, deferring, and batching:
-  - `--seen-number INT`
-  : track at most this many distinct generated `--output` values; default: `16384`;
-    making this larger improves disk performance at the cost of increased memory consumption;
-    setting it to zero will force force `hoardy-web` to constantly re-check existence of `--output` files and force `hoardy-web` to execute  all IO actions immediately, disregarding `--defer-number` setting
-  - `--cache-number INT`
-  : cache `stat(2)` information about this many files in memory; default: `8192`;
-    making this larger improves performance at the cost of increased memory consumption;
-    setting this to a too small number will likely force `hoardy-web` into repeatedly performing lots of `stat(2)` system calls on the same files;
-    setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
-  - `--defer-number INT`
-  : defer at most this many IO actions; default: `0`;
-    making this larger improves performance at the cost of increased memory consumption;
-    setting it to zero will force all IO actions to be applied immediately
-  - `--batch-number INT`
-  : queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: `1024`
-  - `--max-memory INT`
-  : the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `1024`;
-    making this larger improves performance;
-    the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`
+- caching:
+  - `--cache, --cache-number INT`
+  : cache at most this many output paths in RAM; default: `32`
+  - `--batch, --batch-number INT`
+  : batch at most this many file system operations (`write`s, `fsync`s, `--move`-related `unlink`s, etc); default: `1024`;
+    which is to say that `--batch 0` forces all file system operations to be performed immediately;
+    meanwhile, `--batch N` for `N > 0` enables batching of file system operations, which, in most situations, greatly improves observed program performance, since batching greatly reduces the number of needed directory `fsync`s
+  - `--memory, --max-memory INT`
+  : while applying the above settings, try to limit total memory consumption to this value, in MiB; default: `1024`
   - `--lazy`
-  : sets all of the above options to positive infinity;
-    most useful when doing `hoardy-web organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `hoardy-web` needs to keep in memory is small, in which case it will force `hoardy-web` to compute the desired file system state first and then perform all disk writes in a single batch
+  : set all of the options above to positive infinities; default when `--dry-run` is set;
+    in other words, compute everything in RAM and then write the results to disk in a single batch;
+    useful for `hoardy-web organize --symlink --latest --output flat` and similar in cases when the number of inputs is large, the number of distinct `--output` values is small, you have enough RAM to do everything in-memory, and you want to minimize writes to disk;
+    default when `--dry-run` is set because otherwise the results of a run with `--dry-run` will differ from a normal run since some non-run updates could be emitted from cache
+  - `--no-lazy`
+  : use the above values, even if `--dry-run` is set; default when `--dry-run` is not set
+
+- deferring:
+  - `--defer`
+  : defer all updates into the cache and perform them as cache elements get evicted
+  - `--no-defer`
+  : perform all updates eagerly, never deferring them into the cache; default unless `--dry-run` is set;
+    in other words, force output files to be batched for writing in the order their respective reqres appear among the given `INPUT`s;
+    note that this option being set does note imply that the resulting file system operations will be performed immediately, to force that this option needs to be combined with `--batch 0` or `--no-sync` (which see)
 
 - error handling:
   - `--errors {fail,skip,ignore}`
