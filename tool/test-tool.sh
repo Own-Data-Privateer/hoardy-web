@@ -126,7 +126,6 @@ while (($# > 0)); do
             ;;
         --keep)
             keep=1
-            shift
             ;;
         --)
             shift
