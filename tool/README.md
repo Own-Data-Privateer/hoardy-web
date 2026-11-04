@@ -165,9 +165,9 @@ The ["Usage"](#usage) section can be read and referenced to in arbitrary order.
 ## Start archiving and replaying
 
 ```bash
-python -m hoardy_web serve --implicit --archive-to C:\Users\Me\Documents\hoardy-web\raw
+python -m hoardy_web serve --archive-to C:\Users\Me\Documents\hoardy-web\raw
 # or
-hoardy-web serve --implicit --archive-to ~/hoardy-web/raw
+hoardy-web serve --archive-to ~/hoardy-web/raw
 ```
 
 ## Capture and archive some websites
@@ -890,11 +890,12 @@ In other words, `hoardy-web serve` is, essentially, a combination of [`hoardy-we
 For interactive use, this is not only more convenient than `hoardy-web mirror`, it's also usually much faster since required URL rewrites are much cheaper and no recursive requisite resource rendering is required here.
 That is, unlike `mirror`, `serve` is pretty snappy even on ancient hardware.
 
-When invoking `hoardy-web serve`, the argument to the `--archive-to` option will be used by the archiving server parts, while the positional `PATH` arguments will used by the replay server parts.
-That is,
+When `hoardy-web serve` is invoked with `--no-implicit` the argument, the value of `--archive-to` and positional `PATH`s are treated independently.
+That is, with `--no-implicit`, the value of `--archive-to` is only used by the archiving server parts while the positional `PATH` arguments are only used by the replay server parts.
+Which is to say that
 
 ```bash
-hoardy-web serve \
+hoardy-web serve --no-implicit \
   --archive-to ~/hoardy-web/raw \
   ~/hoardy-web/raw/*/2024 \
   ../simple_server/pwebarc-dump \
@@ -902,33 +903,38 @@ hoardy-web serve \
   mitmproxy.*.dump
 ```
 
-- will index and allow replay of all visits stored in files under `~/hoardy-web/raw/*/2024` and `../simple_server/pwebarc-dump`,
-  as well as all files named `~/Downloads/Hoardy-Web-export-*` (which are, usually, `Hoardy-Web` exports) and
-  files named `mitmproxy.*.dump` (which are probably `mitmproxy` dumps);
-- while dumping new captures given by the extension to `~/hoardy-web/raw`.
+will:
 
-When the argument to `--archive-to` and the first `PATH` are the same, you can specify `--implicit` --- or `-i` --- to simplify it:
+- setup dumping of new captures submitted by the extension to `~/hoardy-web/raw`;
+- index and allow replay of all visits stored
+  - in files under `~/hoardy-web/raw/*/2024` and `../simple_server/pwebarc-dump`,
+  - as well as in all files named `~/Downloads/Hoardy-Web-export-*` (which are, usually, `Hoardy-Web` exports),
+  - as well as in files named `mitmproxy.*.dump` (which are probably `mitmproxy` dumps).
+
+By default, however, `hoardy-web serve` runs with an implicit `--implicit` option, which makes `hoardy-web` use the value of `--archive-to` as its first `PATH` implicitly, that is:
 
 ```bash
-hoardy-web serve --implicit --archive-to ~/hoardy-web/raw
-# which is equivalent to
-hoardy-web serve --archive-to ~/hoardy-web/raw ~/hoardy-web/raw
+hoardy-web serve --archive-to ~/hoardy-web/raw
 # which can be shortened to
-hoardy-web serve -i --to ~/hoardy-web/raw
-# or even
-hoardy-web serve -i -t ~/hoardy-web/raw
+hoardy-web serve -t ~/hoardy-web/raw
 ```
 
-By default, `hoardy-web serve` runs with an implied `--all` option, which makes it keep the index of all given archives in memory, allowing arbitrary visits to be replayed.
+is equivalent to
+
+```
+hoardy-web serve --no-implicit --archive-to ~/hoardy-web/raw ~/hoardy-web/raw
+```
+
+Additionally, by default, `hoardy-web serve` runs with an implied `--all` option, which makes it keep the index of all given archives in memory, allowing arbitrary visits to be replayed.
 
 If you dislike this behaviour, you can run it with the `--latest`, `--oldest`, or `--nearest` options instead
 
 ```bash
-hoardy-web serve --latest -i -t ~/hoardy-web/raw
+hoardy-web serve --latest -t ~/hoardy-web/raw
 # or
-hoardy-web serve --oldest -i -t ~/hoardy-web/raw
+hoardy-web serve --oldest -t ~/hoardy-web/raw
 # or
-hoardy-web serve --nearest 2024-06-01 -i -t ~/hoardy-web/raw
+hoardy-web serve --nearest 2024-06-01 -t ~/hoardy-web/raw
 ```
 
 which, for each URL, will make `hoardy-web serve` keep and allow replay of the last, the first, or the one closest to the given timestamp, respectively.
@@ -3116,7 +3122,9 @@ The end.
   - `-t, --to, --archive-to ARCHIVE_DESTINATION`
   : archiving destination directory; if left unset, which is the default, then archiving server support will be disabled
   - `-i, --implicit`
-  : prepend `ARCHIVE_DESTINATION` to the list of input `PATH`s
+  : when `--to` is set and is an existing directory, automatically prepend it the list of input `PATH`s; default
+  - `--no-implicit`
+  : don't do the above
   - `-o, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
 

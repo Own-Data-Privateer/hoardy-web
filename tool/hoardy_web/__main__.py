@@ -2725,15 +2725,13 @@ def cmd_serve(cargs: _t.Any) -> None:
 
         rrexpr_loadf = select_rrexpr_loadf(cargs)
         seen_paths: set[PathType] = set()
-        if destination is not None and cargs.implicit and _op.exists(destination):
+        if cargs.implicit_input and destination is not None and _op.exists(destination):
             load_and_emit_many(
                 cargs, rrexpr_loadf, filters_allow, emit, [destination], seen_paths=seen_paths
             )
         load_and_emit_many(
             cargs, rrexpr_loadf, filters_allow, emit, cargs.paths, seen_paths=seen_paths
         )
-    elif cargs.implicit:
-        raise CatastrophicFailure("`--no-replay`: not allowed with `--implicit`")
     elif len(cargs.paths) > 0:
         raise CatastrophicFailure("`--no-replay`: not allowed with a non-empty list of `PATH`s")
 
@@ -4273,9 +4271,15 @@ thus, e.g., `{__prog__} organize --to-one-of ~/hoardy-web/raw/* -- ~/hoardy-web/
                 agrp.add_argument("-t", "--to", "--archive-to", dest="destination", metavar="ARCHIVE_DESTINATION", type=str,
                     help=_("archiving destination directory; if left unset, which is the default, then archiving server support will be disabled"),
                 )
-                agrp.add_argument("-i", "--implicit", action="store_true",
-                    help=_("prepend `ARCHIVE_DESTINATION` to the list of input `PATH`s"),
+
+                grp = agrp.add_mutually_exclusive_group()
+                grp.add_argument("-i", "--implicit", dest="implicit_input", action="store_true",
+                    help=_("when `--to` is set and is an existing directory, automatically prepend it the list of input `PATH`s; default"),
                 )
+                grp.add_argument("--no-implicit", dest="implicit_input", action="store_false",
+                    help=_("don't do the above"),
+                )
+                cmd.set_defaults(implicit_input=True)
 
             def_def = "hupq_n" if kind == "mirror" else "default"
             agrp.add_argument("-o", "--output", metavar="OUTPUT_FORMAT", default=def_def, type=str,
