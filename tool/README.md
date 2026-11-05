@@ -1826,6 +1826,15 @@ E.g., the default `hoardy-web organize --move` will not overwrite any files, whi
   - `--no-lazy`
   : use the above values, even if `--dry-run` is set; default when `--dry-run` is not set
 
+- fsyncs:
+  - `--fsync`
+  : perform all `fsync`s properly; default
+  - `--no-fsync`
+  : skip all `fsync`s; setting this also forces `--batch 0`;
+    this option should only be used for testing or when both inputs and outputs are stored on the same file system which is also running in `data=ordered` mode;
+    in all other situations **the use of this option is DANGEROUS as it could result in INCONSISTENT DISK STATES and/or LOSE SOME OF YOUR DATA on power loss**;
+    the latter is the reason why the combination of `--no-sync --move` also requires `--please-destroy-my-data`
+
 - deferring:
   - `--defer`
   : defer all updates into the cache and perform them as cache elements get evicted; default unless `--dry-run` is set
@@ -2505,6 +2514,15 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   - `--no-lazy`
   : use the above values, even if `--dry-run` is set; default when `--dry-run` is not set
 
+- fsyncs:
+  - `--fsync`
+  : perform all `fsync`s properly; default
+  - `--no-fsync`
+  : skip all `fsync`s; setting this also forces `--batch 0`;
+    this option should only be used for testing or when both inputs and outputs are stored on the same file system which is also running in `data=ordered` mode;
+    in all other situations **the use of this option is DANGEROUS as it could result in INCONSISTENT DISK STATES and/or LOSE SOME OF YOUR DATA on power loss**;
+    the latter is the reason why the combination of `--no-sync --move` also requires `--please-destroy-my-data`
+
 - deferring:
   - `--defer`
   : defer all updates into the cache and perform them as cache elements get evicted
@@ -2604,6 +2622,15 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
     default when `--dry-run` is set because otherwise the results of a run with `--dry-run` will differ from a normal run since some non-run updates could be emitted from cache
   - `--no-lazy`
   : use the above values, even if `--dry-run` is set; default when `--dry-run` is not set
+
+- fsyncs:
+  - `--fsync`
+  : perform all `fsync`s properly; default
+  - `--no-fsync`
+  : skip all `fsync`s; setting this also forces `--batch 0`;
+    this option should only be used for testing or when both inputs and outputs are stored on the same file system which is also running in `data=ordered` mode;
+    in all other situations **the use of this option is DANGEROUS as it could result in INCONSISTENT DISK STATES and/or LOSE SOME OF YOUR DATA on power loss**;
+    the latter is the reason why the combination of `--no-sync --move` also requires `--please-destroy-my-data`
 
 - deferring:
   - `--defer`

@@ -1503,6 +1503,11 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
 ) -> tuple[_t.Callable[[ReqresExpr[Source]], None], _t.Callable[[], None]]:
     """Wrap `action_op` with optional caching, operation deferring, stdio reporting, etc."""
 
+    if remove and not cargs.fsync and not cargs.force:
+        raise Failure(
+            "this combination of options could loose some your data; run this command with `--please-destroy-my-data` option if you really want to do this"
+        )
+
     on_error = select_on_error(cargs.errors)
 
     dry_run: bool = cargs.dry_run
@@ -1539,11 +1544,11 @@ def make_cached_emit[Source: DeferredSource, AnyStr: (
     max_memory: int = cargs.memory * 1024 * 1024
 
     sync: bool | Deferred[AnyStr]
-    if max_batch > 0:
+    if cargs.fsync and max_batch > 0:
         sync = Deferred(False)
         flush_sync = sync.flush
     else:
-        sync = True
+        sync = cargs.fsync
         flush_sync = noop
 
     # a `list` of sources that need to be removed after this operation gets synced to disk
@@ -4210,6 +4215,19 @@ default when `--dry-run` is set because otherwise the results of a run with `--d
             help=_("use the above values, even if `--dry-run` is set; default when `--dry-run` is not set"),
         )
         cmd.set_defaults(lazy=None)
+
+        agrp = cmd.add_argument_group("fsyncs")
+        grp = agrp.add_mutually_exclusive_group()
+        grp.add_argument("--fsync", dest="fsync", action="store_true",
+            help=("perform all `fsync`s properly; default"),
+        )
+        grp.add_argument("--no-fsync", dest="fsync", action="store_false",
+            help=("""skip all `fsync`s; setting this also forces `--batch 0`;
+this option should only be used for testing or when both inputs and outputs are stored on the same file system which is also running in `data=ordered` mode;
+in all other situations **the use of this option is DANGEROUS as it could result in INCONSISTENT DISK STATES and/or LOSE SOME OF YOUR DATA on power loss**;
+the latter is the reason why the combination of `--no-sync --move` also requires `--please-destroy-my-data`""")
+        )
+        cmd.set_defaults(fsync=True)
 
         is_organize = kind == "organize"
 
