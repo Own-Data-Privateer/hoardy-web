@@ -219,6 +219,7 @@ for arg in "${args[@]}"; do
         ok self import bundle --quiet --to $idir "$(win32path "$src")"
     fi
     describe-forest $idir > $idir.describe-dir
+    num_inputs=$(cat $idir.describe-dir | grep reg | wc -l)
     [[ -n "$do_fixed_dir" ]] && fixed_file "$src" $idir.describe-dir
     end
 
@@ -278,47 +279,124 @@ for arg in "${args[@]}"; do
         ok_selfsame stream-u $idir "$input0" self stream -u "${exprs[@]}"
     fi
 
-    if [[ -z "$in_wine" ]] && should_start "organize sanity"; then
+    if [[ -z "$in_wine" ]] && start "organize sanity"; then
         # ensure `organize --copy` works
-        begin "organize --copy sanity"
-        ok_no_stderr organize-1 self organize --quiet --copy --to organize-1 $idir
-        equal_forest_dir $idir.describe-dir organize-1
+        ok_no_stderr organize-main self organize --quiet --no-defer --no-fsync --copy --to organize-main $idir
+        equal_forest_dir $idir.describe-dir organize-main
 
-        # ensure `--move` deduplicates and deletes things
-        begin "organize --move sanity"
-        ok_no_stderr organize-move self organize --quiet --move --to organize-move organize-1
-        equal_forest_dir "$idir.describe-dir" organize-move
+        # ensure `organize --(copy|hardlink|symlink) --keep-duplicates` actually duplicate things
+        ok_no_stderr organize-copydup self organize --quiet --no-defer --no-fsync --copy --keep-duplicates --to organize-main $idir
+        ok_no_stderr organize-harddup self organize --quiet --no-defer --no-fsync --hardlink --keep-duplicates --to organize-main $idir
+        # do it twice so that some files would be reported as "ref" by `describe-forest`
+        ok_no_stderr organize-harddup self organize --quiet --no-defer --no-fsync --hardlink --keep-duplicates --to organize-main $idir
+        ok_no_stderr organize-symdup self organize --quiet --no-defer --no-fsync --symlink --keep-duplicates --to organize-main $idir
 
-        leftovers=$(describe-forest organize-1 | grep reg | wc -l)
-        if ((leftovers != 0)); then
-            error '`organize --move` left some files over in organize-1'
+        describe-forest organize-main > organize-main.describe-dir
+        num_reg=$(cat organize-main.describe-dir | grep 'wrr reg ' | wc -l)
+        num_ref=$(cat organize-main.describe-dir | grep 'wrr ref ' | wc -l)
+        num_sym=$(cat organize-main.describe-dir | grep 'wrr sym ' | wc -l)
+        if ((num_reg != 3 * num_inputs)) || ((num_ref != num_inputs)) || ((num_sym != num_inputs)); then
+            error "organize --(copy|hardlink|symlink) --keep-duplicates: did not duplicate all the inputs properly"
         fi
-        rm -rf organize-1
-        mv organize-move organize-1
 
-        # ensure `organize --hardlink` works
-        begin "organize --hardlink sanity"
-        ok_no_stderr organize-2 self organize --quiet --hardlink --to organize-2 organize-1
-        equal_forest_dir $idir.describe-dir organize-2
+        for defer in defer no-defer; do
+            suffix=
+            if [[ "$defer" != "defer" ]]; then
+                suffix=-$defer
+            fi
 
-        # ensure `organize --symlink` works
-        begin "organize --symlink sanity"
-        ok_no_stderr organize-3 self organize --quiet --symlink --output hupq_msn --to organize-3 organize-1
+            if start "organize --$defer --copy sanity"; then
+                # ensure `--copy` works and deduplicates things
+                ok_no_stderr organize-copy$suffix self organize --quiet --$defer --copy --to organize-copy$suffix organize-main
+                equal_forest_dir $idir.describe-dir organize-copy$suffix
+            fi
 
-        # ensure these are noops
-        begin "organize --(copy|hardlink|symlink) reogranize sanity"
-        reorganize() {
-            ok self organize --copy --to organize-1 organize-2
-            ok self organize --hardlink --to organize-1 organize-2
+            if start "organize --$defer --hardlink sanity"; then
+                # ensure `organize --hardlink` works and deduplicates things
+                ok_no_stderr organize-hardlink$suffix self organize --quiet --$defer --hardlink --to organize-hardlink$suffix organize-main
+                equal_forest_dir $idir.describe-dir organize-hardlink$suffix
+            fi
 
-            ok self organize --copy --to organize-2 organize-1
-            ok self organize --hardlink --to organize-2 organize-1
+            if start "organize --$defer --symlink sanity"; then
+                # ensure `organize --symlink` works and deduplicates things
+                ok_no_stderr organize-symlink$suffix self organize --quiet --$defer --symlink --output hupq_msn --to organize-symlink$suffix organize-main
+                describe-forest organize-symlink$suffix > organize-symlink$suffix.describe-dir
+                num_sym=$(cat organize-symlink$suffix.describe-dir | grep 'wrr sym ' | wc -l)
+                if ((num_sym != num_inputs)); then
+                    error "organize --$defer --symlink: some outputs appear to be missing"
+                fi
+            fi
 
-            ok self organize --hardlink --to organize-1 organize-3
+            if start "organize --$defer --move sanity"; then
+                # make a `organize --hardlink --keep-duplicates` copy of `organize-main` and ensure it looks like `organize-main`, except without symlinks
+                ok_no_stderr organize-main-copy$suffix self organize --quiet --hardlink --keep-duplicates --$defer --to organize-main-copy$suffix organize-main
+                describe-forest organize-main-copy$suffix > organize-main-copy$suffix.describe-dir
+                num_reg=$(cat organize-main-copy$suffix.describe-dir | grep 'wrr reg ' | wc -l)
+                num_ref=$(cat organize-main-copy$suffix.describe-dir | grep 'wrr ref ' | wc -l)
+                num_sym=$(cat organize-main-copy$suffix.describe-dir | grep 'wrr sym ' | wc -l)
+                if ((num_reg != 3 * num_inputs)) || ((num_ref != 2 * num_inputs)) || ((num_sym != 0)); then
+                    error "organize --hardlink --keep-duplicates --$defer: did not duplicate all the inputs properly"
+                fi
 
-            ok self organize --symlink --output hupq_msn --to organize-3 organize-1
-        }
-        ok_no_stderr reorganize reorganize
+                # ensure `organize --move` works and deduplicates things
+                ok_no_stderr organize-move$suffix self organize --quiet --$defer --move --to organize-move$suffix organize-main-copy$suffix
+                equal_forest_dir $idir.describe-dir organize-move$suffix
+
+                # ensure `organize --move` left no leftovers
+                describe-forest organize-main-copy$suffix > organize-main-copy$suffix.describe-dir2
+                leftovers=$(cat organize-main-copy$suffix.describe-dir2 | grep -vE ' dir$' | wc -l)
+                if ((leftovers != 0)); then
+                    abbrev_file organize-main-copy$suffix.describe-dir2
+                    error "organize --$defer --move: left some files over in organize-main-copy$suffix"
+                fi
+
+                if [[ -e "organize-symlink$suffix" ]]; then
+                    # ensure `organize --move` fails and is a noop for symlink inputs
+                    retcode_stdio 1 organize-move-symlink$suffix self organize --quiet --$defer --move --to organize-move-symlink$suffix organize-symlink$suffix
+                    if [[ -e organize-move-symlink$suffix ]]; then
+                        error "organize --$defer --move: produced some outputs for symlink inputs"
+                    fi
+                    equal_forest_dir organize-symlink$suffix.describe-dir organize-symlink$suffix
+                fi
+            fi
+        done
+
+        # ensure the following are noops
+
+        if [[ -e organize-copy ]] && start "organize --copy repeatedly is noop"; then
+            organize-reorganize-copy() {
+                ok self organize --copy --to organize-main organize-copy
+                ok self organize --copy --to organize-copy organize-main
+                ok self organize --hardlink --to organize-copy organize-main
+            }
+            ok_no_stderr organize-reorganize-copy organize-reorganize-copy
+        fi
+
+        if [[ -e organize-hardlink ]] && start "organize --hardlink repeatedly is noop"; then
+            organize-reorganize-hardlink() {
+                ok self organize --hardlink --to organize-main organize-hardlink
+                ok self organize --hardlink --to organize-hardlink organize-main
+                ok self organize --copy --to organize-hardlink organize-main
+            }
+            ok_no_stderr organize-reorganize-hardlink organize-reorganize-hardlink
+        fi
+
+        if [[ -e organize-symlink ]] && start "organize --(copy|hardlink) symlinks repeatedly is noop"; then
+            organize-reorganize-isymlinks() {
+                ok self organize --copy --to organize-main organize-symlink
+                ok self organize --hardlink --to organize-main organize-symlink
+            }
+            ok_no_stderr organize-reorganize-isymlinks organize-reorganize-isymlinks
+        fi
+
+        if [[ -e organize-copy ]] && [[ -e organize-hardlink ]] && [[ -e organize-symlink ]] && start "organize --symlink repeatedly is noop"; then
+            organize-reorganize-symlink() {
+                ok self organize --symlink --output hupq_msn --to organize-symlink organize-main
+                ok self organize --symlink --output hupq_msn --to organize-symlink organize-copy
+                ok self organize --symlink --output hupq_msn --to organize-symlink organize-hardlink
+            }
+            ok_no_stderr organize-reorganize-symlink organize-reorganize-symlink
+        fi
     fi
 
     if [[ -z "$in_wine" ]] && start "organize --dry-run sanity"; then
