@@ -1532,7 +1532,7 @@ class DeferredFileWrite[Source: DeferredSource, AnyStr: (str, bytes)](
         if self.updated and file_data_equals(self.destination, data):
             # nothing to do
             return
-        atomic_write(data, self.destination, self.overwrite or self.allow_updates, sync=sync)
+        write_file(data, self.destination, self.overwrite or self.allow_updates, sync=sync)
 
 
 def make_deferred_emit[Source: DeferredSource, AnyStr: (
@@ -1864,23 +1864,23 @@ def make_organize_emit[Source: DeferredSource, AnyStr: (
                 "`--move` and `--latest` are not allowed together, it will lose your data"
             )
         actioning = "moving"
-        action_op = atomic_move
+        action_op = move_file
         moving = True
     elif action == "copy":
         if allow_updates:
             raise Failure(
                 "`--copy` and `--latest` are not allowed together at the moment, it could lose your data"
             )
-        action_op = atomic_copy2
+        action_op = clone_file
         copying = True
     elif action == "hardlink":
         if allow_updates:
             raise Failure(
                 "`--hardlink` and `--latest` are not allowed together at the moment, it could lose your data"
             )
-        action_op = atomic_link
+        action_op = link_file
     elif action == "symlink":
-        action_op = atomic_symlink
+        action_op = symlink_file
         check_data = False
         symlinking = True
     else:
@@ -2086,9 +2086,9 @@ def cmd_mirror(cargs: _t.Any) -> None:
     if action == "copy":
         copying = True
     elif action == "hardlink":
-        action_op = atomic_link
+        action_op = link_file
     elif action == "symlink":
-        action_op = atomic_symlink
+        action_op = symlink_file
     else:
         assert False
 
@@ -2470,7 +2470,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                 if copying:
                     real_out_path = rel_out_path
                     if old_data != data:
-                        atomic_write(data, rel_out_path, allow_updates)
+                        write_file(data, rel_out_path, allow_updates)
                 else:
                     rrexpr.values["content"] = data
                     rrexpr.values["content_sha256"] = sha256_raw = _hashlib.sha256(data).digest()
@@ -2481,7 +2481,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                     old_content = read_file_maybe(real_out_path)
 
                     if old_content is None:
-                        atomic_write(data, real_out_path, False)
+                        write_file(data, real_out_path, False)
                     elif old_content != data:
                         raise Failure(
                             "wrong file content in `%s`: expected sha256 `%s`, got sha256 `%s`",
@@ -2905,7 +2905,7 @@ def cmd_serve(cargs: _t.Any) -> None:
             prev_path = abs_out_path
 
             try:
-                atomic_write(data, abs_out_path)
+                write_file(data, abs_out_path)
             except FileExistsError:
                 pass
             except OSError as exc:
