@@ -6,6 +6,169 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [tool-v0.26.0] - 2026-11-06: Incremental improvements, bug fixes
+
+### Changed/Removed: Incompatible changes
+
+- `organize`, `import`, `mirror`:
+
+  - Reworked overwrite controls:
+
+    - Renamed `--overwrite-dangerously` to `--overwrite` and aliased `--no-overwrite` to `--skip-existing`.
+    - Introduced `--please-destroy-my-data` option.
+    - Reworked `--overwrite` option to silently allow overwrites when they are safe to do (because it won't be overwriting archived input data, like with `organize --symlink --latest` or `mirror`), but made it require `--please-destroy-my-data` otherwise.
+    - Made `--overwrite` option the default when it's safe and makes sense (like with `organize --symlink --latest`).
+
+- `import`:
+
+  - Replaced `import bundle` and `import mitmproxy` with just `import`, since `import --load-wrrb` or `import --load-mitmproxy` can be done instead.
+
+  - Removed all overwrite controls from this subcommand, making `--skip-existing` the default and only option.
+
+- `serve`:
+
+  - Introduced `--no-implicit` option and made `--implicit` option the default.
+
+    That is, from now on, when `--to` is set, it will be implicitly added to the list of inputs unless `--no-implicit` is set.
+
+- `*`:
+
+  - In all relevant subcommands, replaced `--errors fail` with `--errors skip` as the new default.
+
+    That is, from now on, most input-parsing-related issues are treated as non-critical errors instead of them crashing the program outright.
+    `hoardy-web` still exits with a non-zero exit code when such errors occur.
+
+### Added/Changed/Fixed: Misc
+
+- `organize`, `import`, `serve`, `stream`, `pprint`, `*`:
+
+  - Reworked reqres-loading machinery, simplifying it somewhat and making it report errors nicely.
+
+    Most notably, it can now report loading failures separately for each reqres in a `WRR`-bundle or a `mitmproxy` dump.
+    Thus, from now on, the now-default `--errors skip` generates errors and then skips separate failing reqres in `WRR`-bundle and `mitmproxy` dump input files, instead of the old behaviour of it failing in the middle of such input files, reporting that, and then silently skipping the tail of said files.
+
+  - As the consequence of the above changes:
+
+    - Fixed a bug where it was impossible to import slightly-broken inputs with `hoardy-web import`.
+
+    - Fixed similar bugs were it was impossible to properly process such files with `stream` and `pprint`.
+
+    - Fixed a bug where `hoardy-web serve` would fail to start if there were `--fallback` reqres among its inputs.
+
+- `organize`, `import`:
+
+  - Greatly simplified and improved the algorithm.
+    It's ~1/3 of the code size and it uses a superior output cache eviction strategy now.
+
+    On my own archives the overall performance of these subcommands appear to stay the same as `tool-v0.25.0`, even though this implementation doesn't do any file write batching yet.
+
+  - (The motivation behind these changes is that the main loop of `organize` was the ugliest part of `hoardy-web` and most bugs were coming from there.
+    With this code reworked into a much saner version it now became much less likely that another hotfix like `tool-v0.18.1` would be needed in the future.
+    This part of `hoardy-web` became pretty well-covered by tests since then and then became even more covered with this version, but still.)
+
+  - Introduced a bunch of new sanity-checks into the algorithm.
+
+    Most notably, `organize --symlink` will now reject symlink inputs and will never attempt to overwrite non-symlink outputs.
+    And, inversely, `organize` without `--symlink` will now never attempt to overwrite symlink outputs.
+
+  - Reworked `organize --move` to report deduplications separately from file movements.
+
+  - Fixed a bug where `organize` and `import` would sometimes fail to deduplicate some of their inputs against their outputs.
+
+    That is, if you used one of those commands before, you can now run
+    ```bash
+    hoardy-web organize --dry-run ~/hoardy-web/raw/*
+    ```
+    or some such over your archived data and it will probably tell you that it would deduplicate some things if you run it without `--dry-run`.
+
+  - Added `CBOR` `WRR` structure caching to reqres-loading, which made `organize --copy` and `import` much more CPU-efficient on `WRR`-bundles.
+
+  - Renamed `--cache-number` -\> `--cache`, `--batch-number` -\> `--batch`, `--max-memory` -\> `--memory` and reworked semantics of these options somewhat.
+
+    Old names are kept as aliases.
+
+  - Made `--dry-run` imply `--lazy` by default so that the semantics of `--dry-run` and no `--dry-run` would match.
+
+    You can still run it with `--no-lazy` if you want it to work in constant memory.
+
+  - Introduced `--keep-duplicates` and `--no-fsync` options, which are only really useful for testing.
+
+    Also, made `--move --no-fsync` combination require `--please-destroy-my-data`.
+
+  - Removed `--seen-number` option, since it's no longer used by the algorithm.
+
+- `mirror`, `serve`:
+
+  - Renamed `--max-memory` -\> `--memory` similarly to the above.
+
+- `organize`:
+
+  - Introduced `--nearest` and `--oldest` options in addition to `--latest`, similarly to how `mirror` and `serve` work.
+
+    E.g., you can now do
+    ```bash
+    hoardy-web organize --symlink --oldest --to ~/hoardy-web/oldest <inputs>
+    ```
+
+  - Introduced a bunch of new `--print-*` options, most notably `--print-updated-inputs` and `--print-remap`.
+
+  - Introduced `--to-one-of` option, which groups positional `PATH`s per-ancestor and then runs `organize --to` for each such ancestor and its children paths.
+
+    Which is to say that
+
+    ```bash
+    hoardy-web organize --to-one-of ~/hoardy-web/raw/* -- ~/hoardy-web/raw/*/2024/01
+    ```
+
+    is equivalent to
+
+    ```bash
+    for a in default background extension etc; do
+        hoardy-web organize --to ~/hoardy-web/raw/$a -- ~/hoardy-web/raw/$a/2024/01
+    done
+    ```
+
+    except it also works with `--stdin0` and such.
+    Thus, for example,
+
+    ```bash
+    hoardy-web --quiet --dry-run --zero-terminated --print-remap --move --to-one-of ~/hoardy-web/raw/* --stdin0 < input > output
+    ```
+
+    can now be used to quickly remap `--stdin0` list of `input` paths into their future `--move` destinations without custom `bash` and `xargs` hackery.
+
+  - Added a bunch more tests for it.
+
+- `serve`:
+
+  - Introduced `--implicit-similar` option that forces `/find/` pages to match URLs as if `/find/...,similar/` request option is set when neither of `/find/...,re/` or `/find/...,glob/` options are set.
+
+  - Introduced a bunch more `--*implicit-similar*` options, with `--implicit-similar-if-star` becoming the default and documenting the current default behaviour.
+
+  - Fixed `--web` and `--mirror` options to be mutually exclusive.
+
+- `import`:
+
+  - Fixed it not expanding paths arguments beginning with "~/" into "$HOME/" like other commands do.
+
+- `*`:
+
+  - For all relevant commands, `--dry-run` and `--quiet` options can now be specified simultaneously.
+
+  - Similarly, reworked `--no-print` to be separate from `--lf-terminated` and `--zero-terminated`.
+
+- Tests:
+
+  - Extended the `organize` test suite greatly.
+
+  - Improved other tests in minor ways.
+
+- Documentation:
+
+  - Improved many `--help` strings greatly.
+
+  - Improved the rest of [`README.md`](./tool/README.md) a bit.
+
 ## [tool-v0.25.0] - 2026-09-14: Incremental improvements, bug fixes
 
 ### Changed: Incompatible changes
@@ -3878,6 +4041,7 @@ All planned features are complete now.
 
   - Initial public release.
 
+[tool-v0.26.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.25.0...tool-v0.26.0
 [tool-v0.25.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.24.0...tool-v0.25.0
 [extension-v1.30.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.28.0...extension-v1.30.0
 [extension-v1.28.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.27.0...extension-v1.28.0
@@ -4024,8 +4188,6 @@ All planned features are complete now.
 
   - Index more `WRR` metadata into memory so that `/find/*/*` would not need to touch the disk at all.
 
-  - Add an option to match non-`glob` and non-`re` patterns in `/find/` with `similar` option enabled by default.
-
   - Make search much more efficient.
 
     - Make a version of URL parser that admits `glob`s in the `netloc`s.
@@ -4048,10 +4210,6 @@ All planned features are complete now.
   - Implement search via said `sqlite` index.
 
 - `organize`:
-
-  - Simplify the implementation! The current state is awful.
-
-  - Fix `WRR` deduplication to work properly in all the modes, not just `--copy`.
 
   - Implement `un206` command/option, which would reassemble a bunch of `GET 206` `WRR` files into a single `GET 200` `WRR` file.
 
